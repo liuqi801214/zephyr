@@ -20,6 +20,22 @@
 
 #include "board.h"
 
+#include <zephyr/shell/shell.h>
+#include <stdio.h>
+#include "mesh/access.h"
+#include "mesh/net.h"
+#include "common/bt_str.h"
+/*add 2024-4-22 lq_liu*/
+char net_key_index[8];
+struct k_fifo my_fifo;
+typedef struct
+{
+    uint8_t buf;
+    uint32_t len;
+} T_RTL_MESH_SEND_BUF;
+T_RTL_MESH_SEND_BUF mesh_send_buf;
+
+
 #define OP_ONOFF_GET       BT_MESH_MODEL_OP_2(0x82, 0x01)
 #define OP_ONOFF_SET       BT_MESH_MODEL_OP_2(0x82, 0x02)
 #define OP_ONOFF_SET_UNACK BT_MESH_MODEL_OP_2(0x82, 0x03)
@@ -430,5 +446,108 @@ int main(void)
 	if (err) {
 		printk("Bluetooth init failed (err %d)\n", err);
 	}
+	/*get mac address for uuid*/
+	bt_addr_le_t device_addr;
+	size_t count = 1;
+	bt_id_get(&device_addr, &count);
+	memcpy(dev_uuid,device_addr.a.val,6);
+	/*
+	 2024-4-lq_liu
+	 get info from my_fifo to send mesh message by gen_onoff_send 
+	 */
+    // T_RTL_MESH_SEND_BUF *rx_data;
+	// while (1) {
+	
+	//     rx_data= k_fifo_get(&my_fifo, K_FOREVER);
+	// 	if(rx_data->buf==1)
+	// 	{
+    //        gen_onoff_send(!onoff.val);
+    //        rx_data->buf=0;
+	// 	}
+
+	// }
+
 	return 0;
 }
+
+/*
+ sw timer
+*/
+void timer_expired_handler(struct k_timer *timer)
+{
+	//LOG_INF("Timer expired");
+	mesh_send_buf.buf =1;
+	k_fifo_put(&my_fifo, &mesh_send_buf);
+    //gen_onoff_send(!onoff.val);
+	//k_work_submit(&button_work);
+	/* Call another module to present logging from multiple sources. */
+	
+}
+
+K_TIMER_DEFINE(test_timer, timer_expired_handler, NULL);
+
+static int cmd_log_test_start(const struct shell *sh, size_t argc,
+			      char **argv, uint32_t period)
+{
+	ARG_UNUSED(argv);
+
+	k_timer_start(&test_timer, K_MSEC(period), K_MSEC(period));//K_NO_WAIT);
+	shell_print(sh, "Log test started\n");
+
+	return 0;
+}
+
+static int cmd_log_test_start_demo(const struct shell *sh, size_t argc,
+				   char **argv)
+{
+	char sw_period=20;
+	sscanf(argv[1], "%hhd", &sw_period);
+	shell_print(sh, "argv[0]=%s,argv[1]=%s,sw_period=%d",argv[0],argv[1],sw_period);
+	return cmd_log_test_start(sh, argc, argv, sw_period*10);
+}
+
+int mesh_key_info(const struct shell *sh, size_t argc, char **argv)
+{
+    struct bt_mesh_subnet *sub;
+	struct bt_mesh_elem *elem;
+    //shell_print(sh, "rtl8762gn_evb");
+    sub = bt_mesh_subnet_get(0);
+	shell_print(sh, "argv[0]=%s",argv[0]);
+	sscanf(argv[1], "%hhd", net_key_index);
+	//unsigned int net_key_index =hex_string_to_int(argv[1]);
+	shell_print(sh, "argv[1]=%s",argv[1]);
+	shell_print(sh, "net_key_index[0]=%d",net_key_index[0]);
+    shell_print(sh,"NetKey %s", bt_hex(&sub->keys[0].net, sizeof(struct bt_mesh_key)));
+    shell_print(sh,"devKey %s", bt_hex(&bt_mesh.dev_key, sizeof(struct bt_mesh_key)));
+	uint16_t ele_addr=bt_mesh_primary_addr();
+	shell_print(sh, "primary_addr=%x",ele_addr);
+    elem = bt_mesh_elem_find(ele_addr); 
+	for (uint16_t i = 0U; i < comp.elem[0].model_count; i++) {
+	      shell_print(sh,"model_id(elem 0)=%x", comp.elem[0].models[i].id);
+		   if(ele_addr !=0) {
+	 	        for (uint8_t j = 0; j < elem->models[i].keys_cnt; j++) {
+	 	           if (elem->models[i].keys[j] != BT_MESH_KEY_UNUSED) {
+	 		          shell_print(sh,"appkeys_bind_idx =%d",elem->models[i].keys[j]);
+		        }
+		    }
+	    }
+	}
+    return 0;
+}
+
+/* SHELL_CMD 注册两个子命令， board和version，执行时会调用cmd_info_board和cmd_info_version函数
+   SHELL_STATIC_SUBCMD_SET_CREATE 将子命令组装成子命令集subinfo
+   SHELL_SUBCMD_SET_END表示子命令集的结束
+ */
+    SHELL_STATIC_SUBCMD_SET_CREATE(subinfo,
+    SHELL_CMD(show, NULL, "Show key command.", mesh_key_info),
+	SHELL_CMD(sw_timer, NULL,
+		  "Start log timer which generates log message every 200ms.",
+		  cmd_log_test_start_demo),
+    SHELL_SUBCMD_SET_END /* Array terminated. */
+);
+
+/* 注册一个根命令shell_sample，执行根命令shell_sample时会调用cmd_shell_help
+    shell_sample的子命令集为
+ */
+SHELL_CMD_REGISTER(mesh_key, &subinfo, "Sample commands", NULL);

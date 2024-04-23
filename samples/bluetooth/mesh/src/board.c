@@ -55,6 +55,15 @@ static void button_cb(const struct device *port, struct gpio_callback *cb,
 }
 #endif /* BUTTON0 */
 
+/*pwm-led 2024-4-22 lq_liu*/
+const struct device *const led_ctrl = DEVICE_DT_GET(DT_ALIAS(pwm_led));
+#define RTL_LED_PWM_NODE_ID	 DT_COMPAT_GET_ANY_STATUS_OKAY(pwm_leds)
+const char *rtl_led_label[] = {
+	DT_FOREACH_CHILD_SEP_VARGS(RTL_LED_PWM_NODE_ID, DT_PROP_OR, (,), label, NULL)
+};
+
+const int num_leds = ARRAY_SIZE(rtl_led_label);
+
 static int led_init(void)
 {
 #if DT_NODE_EXISTS(LED0)
@@ -65,7 +74,7 @@ static int led_init(void)
 	}
 
 	err = gpio_pin_configure(led_dev, LED0_PIN,
-				 LED0_FLAGS | GPIO_OUTPUT_INACTIVE);
+				 LED0_FLAGS | GPIO_OUTPUT_ACTIVE | GPIO_PULL_UP);
 	if (err) {
 		return err;
 	}
@@ -82,7 +91,7 @@ static int button_init(struct k_work *button_pressed)
 	int err;
 
 	err = gpio_pin_configure(button_dev, BUTTON0_PIN,
-				 BUTTON0_FLAGS | GPIO_INPUT);
+				 BUTTON0_FLAGS | GPIO_INPUT | GPIO_PULL_DOWN);
 	if (err) {
 		return err;
 	}
@@ -114,7 +123,15 @@ int board_init(struct k_work *button_pressed)
 	if (err) {
 		return err;
 	}
-
+    // led_on(led_ctrl, 0);
+	
+	// for (uint32_t led = 0; led < num_leds; led++) {
+	// 	  printk("num_leds =%d\n",num_leds);
+	// 		for (uint8_t level = 0; level <= 100; level++) {
+	// 	           err = led_set_brightness(led_ctrl, led, level);
+    //                 k_sleep(K_MSEC(100));
+	//       }
+	// }
 	return button_init(button_pressed);
 }
 

@@ -553,6 +553,10 @@ static void prov_data(const uint8_t *data)
 	flags = pdu[18];
 	iv_index = sys_get_be32(&pdu[19]);
 	bt_mesh_prov_link.addr = sys_get_be16(&pdu[23]);
+    
+	/*add cdb 2024-4-22 lq_liu */
+    if (IS_ENABLED(CONFIG_BT_MESH_CDB))
+    bt_mesh_cdb_create(pdu);
 
 	if (IS_ENABLED(CONFIG_BT_MESH_RPR_SRV) &&
 	    atomic_test_bit(bt_mesh_prov_link.flags, REPROVISION) &&
@@ -650,7 +654,7 @@ static void prov_link_closed(enum prov_bearer_link_status status)
 		/* Disable Attention Timer if it was set */
 		bt_mesh_attention(NULL, 0);
 	}
-
+    printk("prov_link_closed-bt_mesh_prov_reset_state\n");
 	bt_mesh_prov_reset_state();
 }
 
