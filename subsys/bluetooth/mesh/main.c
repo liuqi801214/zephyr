@@ -342,6 +342,7 @@ void bt_mesh_reset(void)
 {
 	if (!atomic_test_bit(bt_mesh.flags, BT_MESH_VALID) ||
 	    !atomic_test_bit(bt_mesh.flags, BT_MESH_INIT)) {
+		printk("not mesh valid and init\n");
 		return;
 	}
 

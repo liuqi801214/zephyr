@@ -65,7 +65,7 @@ static int led_init(void)
 	}
 
 	err = gpio_pin_configure(led_dev, LED0_PIN,
-				 LED0_FLAGS | GPIO_OUTPUT_INACTIVE);
+				 LED0_FLAGS | GPIO_OUTPUT_ACTIVE | GPIO_PULL_UP);
 	if (err) {
 		return err;
 	}
@@ -82,7 +82,7 @@ static int button_init(struct k_work *button_pressed)
 	int err;
 
 	err = gpio_pin_configure(button_dev, BUTTON0_PIN,
-				 BUTTON0_FLAGS | GPIO_INPUT);
+				 BUTTON0_FLAGS | GPIO_INPUT | GPIO_PULL_DOWN);
 	if (err) {
 		return err;
 	}

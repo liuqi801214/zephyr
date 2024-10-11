@@ -599,7 +599,12 @@ static void prov_data(const uint8_t *data)
 	if (IS_ENABLED(CONFIG_BT_MESH_GATT_PROXY) && identity_enable) {
 		bt_mesh_proxy_identity_enable();
 	}
-
+    #if defined(CONFIG_SYS_HEAP_RUNTIME_STATS)
+     #include "os_mem.h"
+	 size_t os_mem_peek_zephyr(RAM_TYPE ram_type);
+	 os_mem_peek_zephyr(RAM_TYPE_DATA_ON);
+     os_mem_peek_zephyr(RAM_TYPE_BUFFER_ON);
+	#endif
 session_key_destructor:
 	bt_mesh_key_destroy(&session_key);
 }

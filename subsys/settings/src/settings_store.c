@@ -57,6 +57,7 @@ int settings_load_subtree(const char *subtree)
 	SYS_SLIST_FOR_EACH_CONTAINER(&settings_load_srcs, cs, cs_next) {
 		cs->cs_itf->csi_load(cs, &arg);
 	}
+	printk("setting store-settings_load_subtree\n");
 	rc = settings_commit_subtree(subtree);
 	k_mutex_unlock(&settings_lock);
 	return rc;

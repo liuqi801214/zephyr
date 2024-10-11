@@ -83,7 +83,9 @@ int bt_mesh_settings_set(settings_read_cb read_cb, void *cb_arg,
 
 static int mesh_commit(void)
 {
+	printk("mesh_commit\n");
 	if (!atomic_test_bit(bt_mesh.flags, BT_MESH_INIT)) {
+		printk("not mesh init\n");
 		return 0;
 	}
 
@@ -94,21 +96,23 @@ static int mesh_commit(void)
 		 * tree to be loaded after @ref bt_enable is completed, so this handler
 		 * will be called again later.
 		 */
+		printk("not dev enable\n");
 		return 0;
 	}
 
 	if (!bt_mesh_subnet_next(NULL)) {
 		/* Nothing to do since we're not yet provisioned */
+		printk("not subnet\n");
 		return 0;
 	}
 
 	if (IS_ENABLED(CONFIG_BT_MESH_PB_GATT)) {
 		(void)bt_mesh_pb_gatt_srv_disable();
 	}
-
+    printk("net_settings_commit\n");
 	bt_mesh_net_settings_commit();
 	bt_mesh_model_settings_commit();
-
+    printk("mesh_commit-BT_MESH_VALID\n");
 	atomic_set_bit(bt_mesh.flags, BT_MESH_VALID);
 
 	bt_mesh_start();
@@ -185,7 +189,7 @@ void bt_mesh_settings_store_cancel(enum bt_mesh_settings_flag flag)
 static void store_pending(struct k_work *work)
 {
 	LOG_DBG("");
-
+    printk("store_pending\n");
 	if (IS_ENABLED(CONFIG_BT_MESH_RPL_STORAGE_MODE_SETTINGS) &&
 	    atomic_test_and_clear_bit(pending_flags, BT_MESH_SETTINGS_RPL_PENDING)) {
 		bt_mesh_rpl_pending_store(BT_MESH_ADDR_ALL_NODES);

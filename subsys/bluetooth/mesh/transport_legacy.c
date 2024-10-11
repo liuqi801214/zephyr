@@ -984,7 +984,6 @@ static int trans_unseg(struct net_buf_simple *buf, struct bt_mesh_net_rx *rx,
 
 	/* Adjust the length to not contain the MIC at the end */
 	buf->len -= APP_MIC_LEN(0);
-
 	return sdu_recv(rx, hdr, 0, buf, &sdu, NULL);
 }
 

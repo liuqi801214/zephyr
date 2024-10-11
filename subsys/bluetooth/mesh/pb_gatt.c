@@ -109,7 +109,6 @@ int bt_mesh_pb_gatt_start(struct bt_conn *conn)
 	if (link.conn) {
 		return -EBUSY;
 	}
-
 	link.conn = bt_conn_ref(conn);
 	k_work_reschedule(&link.prot_timer, bt_mesh_prov_protocol_timeout_get());
 

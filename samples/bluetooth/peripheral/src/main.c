@@ -351,7 +351,12 @@ int main(void)
 	struct bt_gatt_attr *vnd_ind_attr;
 	char str[BT_UUID_STR_LEN];
 	int err;
-
+    #if defined(CONFIG_SYS_HEAP_RUNTIME_STATS)
+     #include "os_mem.h"
+	 size_t os_mem_peek_zephyr(RAM_TYPE ram_type);
+	 os_mem_peek_zephyr(RAM_TYPE_DATA_ON);
+     os_mem_peek_zephyr(RAM_TYPE_BUFFER_ON);
+	#endif
 	err = bt_enable(NULL);
 	if (err) {
 		printk("Bluetooth init failed (err %d)\n", err);
@@ -371,6 +376,12 @@ int main(void)
 	/* Implement notification. At the moment there is no suitable way
 	 * of starting delayed work so we do it here
 	 */
+	#if defined(CONFIG_SYS_HEAP_RUNTIME_STATS)
+     #include "os_mem.h"
+	 size_t os_mem_peek_zephyr(RAM_TYPE ram_type);
+	 os_mem_peek_zephyr(RAM_TYPE_DATA_ON);
+     os_mem_peek_zephyr(RAM_TYPE_BUFFER_ON);
+	#endif
 	while (1) {
 		k_sleep(K_SECONDS(1));
 

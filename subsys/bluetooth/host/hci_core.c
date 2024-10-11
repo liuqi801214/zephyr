@@ -826,11 +826,11 @@ static void hci_disconn_complete_prio(struct net_buf *buf)
 	struct bt_conn *conn;
 
 	LOG_DBG("status 0x%02x handle %u reason 0x%02x", evt->status, handle, evt->reason);
-
+    
 	if (evt->status) {
 		return;
 	}
-
+    //printk("hci_disconn_complete_prio\n");
 	conn = bt_conn_lookup_handle(handle, BT_CONN_TYPE_ALL);
 	if (!conn) {
 		/* Priority disconnect complete event received before normal
@@ -1328,8 +1328,27 @@ void bt_hci_le_enh_conn_complete(struct bt_hci_evt_le_enh_conn_complete *evt)
 		/* Clear advertising even if we are not able to add connection
 		 * object to keep host in sync with controller state.
 		 */
-		atomic_clear_bit(adv->flags, BT_ADV_ENABLED);
-		(void)bt_le_lim_adv_cancel_timeout(adv);
+		//atomic_clear_bit(adv->flags, BT_ADV_ENABLED);
+		//(void)bt_le_lim_adv_cancel_timeout(adv);
+		/*add 2024-9-18
+		  when conn is NULL，need to stop adv，if don't have this operation， 
+		  it will appear that adv is in the enable state and lowstack returns the disallowed 
+		  state when the adv parameter is set 
+		*/
+		if(conn){       
+          atomic_clear_bit(adv->flags, BT_ADV_ENABLED);   
+          (void)bt_le_lim_adv_cancel_timeout(adv);
+        }
+        else
+        {   
+            int bt_le_adv_stop(void);
+             if(!(IS_ENABLED(CONFIG_BT_EXT_ADV)))
+             {
+                bt_le_adv_stop();
+                printk("bt_le_adv_stop\n");
+             }
+        }
+
 	}
 
 	if (IS_ENABLED(CONFIG_BT_CENTRAL) &&
@@ -3781,6 +3800,7 @@ int bt_recv(struct net_buf *buf)
 		uint8_t evt_flags = bt_hci_evt_get_flags(hdr->evt);
 
 		if (evt_flags & BT_HCI_EVT_FLAG_RECV_PRIO) {
+			//printk("prio\n");
 			hci_event_prio(buf);
 		}
 

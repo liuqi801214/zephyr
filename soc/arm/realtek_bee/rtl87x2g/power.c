@@ -191,7 +191,7 @@ void pm_resume_devices_rtk(void)
 #endif  /* !CONFIG_PM_DEVICE_RUNTIME_EXCLUSIVE */
 #endif	/* CONFIG_PM_DEVICE */
 
-#define RTK_PM_WORKQ_STACK_SIZE 512
+#define RTK_PM_WORKQ_STACK_SIZE 2048
 #define RTK_PM_WORKQ_PRIORITY K_HIGHEST_THREAD_PRIO
 
 K_THREAD_STACK_DEFINE(rtk_pm_workq_stack_area, RTK_PM_WORKQ_STACK_SIZE);
@@ -222,10 +222,25 @@ void submit_items_to_rtk_pm_workq(void)
     return;
 }
 
+typedef union
+{
+    uint8_t value[1];
+    struct
+    {
+        uint8_t os_pm_statistic:        1;
+        uint8_t rsvd:                   7;
+    };
+} OSPMFeatureConfig;
+
 /* Initialize power system */
 static int rtl87x2g_power_init(void)
 {
     int ret = 0;
+    
+    extern OSPMFeatureConfig os_pm_feature_cfg;
+    os_pm_feature_cfg.os_pm_statistic = 1;
+    extern PlatformPMFeatureConfig platform_pm_feature_cfg;
+    platform_pm_feature_cfg.platform_statistics=1;            
 
     bt_power_mode_set(BTPOWER_DEEP_SLEEP);
     //bt_power_mode_set(BTPOWER_ACTIVE);

@@ -722,3 +722,20 @@ void bt_mesh_app_key_pending_store(void)
 		}
 	}
 }
+
+#if defined(CONFIG_BT_MESH_SHELL)
+void read_app_key(uint16_t app_idx,struct app_key_val *app_key)
+{
+    const struct app_key *app;
+    app = app_get(app_idx);
+    if (!app) {
+        LOG_WRN("ApKeyIndex 0x%03x not found", app_idx);
+        return;
+    }
+    app_key->net_idx = app->net_idx,
+    app_key->updated = app->updated,
+    memcpy(&app_key->val[0], &app->keys[0].val, sizeof(struct bt_mesh_key));
+    memcpy(&app_key->val[1], &app->keys[1].val, sizeof(struct bt_mesh_key));
+
+}
+#endif

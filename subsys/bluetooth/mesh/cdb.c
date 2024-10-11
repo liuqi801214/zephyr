@@ -255,6 +255,7 @@ static int cdb_node_set(const char *name, size_t len_rd,
 	}
 
 	if (val.flags & F_NODE_CONFIGURED) {
+		printk("cdb_node_set-CDB_NODE_CONFIGURED\n");
 		atomic_set_bit(node->flags, BT_MESH_CDB_NODE_CONFIGURED);
 	}
 
@@ -1000,7 +1001,7 @@ void bt_mesh_cdb_node_foreach(bt_mesh_cdb_node_func_t func, void *user_data)
 		if (bt_mesh_cdb.nodes[i].addr == BT_MESH_ADDR_UNASSIGNED) {
 			continue;
 		}
-
+        printk("check_unconfigured\n");
 		if (func(&bt_mesh_cdb.nodes[i], user_data) ==
 		    BT_MESH_CDB_ITER_STOP) {
 			break;

@@ -136,3 +136,28 @@ int main(void)
 	start_scan();
 	return 0;
 }
+
+
+
+#include <zephyr/shell/shell.h>
+
+int ble_key_info(const struct shell *sh, size_t argc, char **argv)
+{
+    int err = 0;
+    char ble_key_index;
+    shell_print(sh, "argv[0]=%s",argv[0]);
+    //sscanf(argv[1], "%hhd", net_key_index);
+    ble_key_index=shell_strtoul(argv[1], 0, &err);
+    shell_print(sh, "argv[1]=%s",argv[1]);
+    shell_print(sh, "ble_key_index=%d",ble_key_index);
+    return 0;
+}
+
+
+
+ SHELL_STATIC_SUBCMD_SET_CREATE(ble_user_cmds,
+  SHELL_CMD_ARG(key-show, NULL, "netkey index", ble_key_info, 1, 1),
+   SHELL_SUBCMD_SET_END
+  );
+ SHELL_CMD_ARG_REGISTER(ble_user, &ble_user_cmds, "mesh user define commands",NULL, 1, 1);
+

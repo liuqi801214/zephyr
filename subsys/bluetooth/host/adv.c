@@ -920,7 +920,7 @@ static int le_adv_start_add_conn(const struct bt_le_ext_adv *adv,
 		if (!conn) {
 			return -ENOMEM;
 		}
-
+        //printk("le_adv_start_add_conn\n");
 		bt_conn_set_state(conn, BT_CONN_CONNECTING_ADV);
 		*out_conn = conn;
 		return 0;
@@ -954,6 +954,7 @@ static void le_adv_stop_free_conn(const struct bt_le_ext_adv *adv, uint8_t statu
 
 	if (conn) {
 		conn->err = status;
+		//printk("le_adv_stop_free_conn\n");
 		bt_conn_set_state(conn, BT_CONN_DISCONNECTED);
 		bt_conn_unref(conn);
 	}
@@ -1072,6 +1073,7 @@ int bt_le_adv_start_legacy(struct bt_le_ext_adv *adv,
 	if (err) {
 		LOG_ERR("Failed to start advertiser");
 		if (IS_ENABLED(CONFIG_BT_PERIPHERAL) && conn) {
+			printk("err bt_le_adv_start_legacy\n");
 			bt_conn_set_state(conn, BT_CONN_DISCONNECTED);
 			bt_conn_unref(conn);
 		}
@@ -1512,6 +1514,7 @@ void bt_le_adv_resume(void)
 	err = bt_le_adv_set_enable(adv, true);
 	if (err) {
 		LOG_DBG("Controller cannot resume connectable advertising (%d)", err);
+		printk("err bt_le_adv_resume\n");
 		bt_conn_set_state(conn, BT_CONN_DISCONNECTED);
 
 		/* Temporarily clear persist flag to avoid recursion in
@@ -1633,9 +1636,18 @@ int bt_le_ext_adv_start(struct bt_le_ext_adv *adv,
 			bt_id_set_adv_private_addr(adv);
 		}
 	} else {
+		// if (!atomic_test_bit(adv->flags, BT_ADV_USE_IDENTITY)) {
+		// 	bt_id_set_adv_private_addr(adv);
+		// }
 		if (!atomic_test_bit(adv->flags, BT_ADV_USE_IDENTITY)) {
-			bt_id_set_adv_private_addr(adv);
-		}
+            //bt_id_set_adv_private_addr(adv);
+            if(CONFIG_RTL_BT_ADV_AND_SCAN_USER_PUBLIC_ADDR==0)
+            {  
+              //printk("bt_id_set_adv_private_addr\n");
+              bt_id_set_adv_private_addr(adv);
+            }
+        }
+
 	}
 
 	if (get_adv_name_type(adv) != ADV_NAME_TYPE_NONE &&

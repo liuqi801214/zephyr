@@ -42,6 +42,8 @@ static uint8_t notify_func(struct bt_conn *conn,
 	return BT_GATT_ITER_CONTINUE;
 }
 
+int bt_conn_disconnect(struct bt_conn *conn, uint8_t reason);
+
 static uint8_t discover_func(struct bt_conn *conn,
 			     const struct bt_gatt_attr *attr,
 			     struct bt_gatt_discover_params *params)
@@ -51,6 +53,7 @@ static uint8_t discover_func(struct bt_conn *conn,
 	if (!attr) {
 		printk("Discover complete\n");
 		(void)memset(params, 0, sizeof(*params));
+		bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);//2024-10-8,用BT_HCI_ERR_LOCALHOST_TERM_CONN不行
 		return BT_GATT_ITER_STOP;
 	}
 
@@ -152,7 +155,7 @@ static void device_found(const bt_addr_le_t *addr, int8_t rssi, uint8_t type,
 	bt_addr_le_to_str(addr, dev, sizeof(dev));
 	printk("[DEVICE]: %s, AD evt type %u, AD data len %u, RSSI %i\n",
 	       dev, type, ad->len, rssi);
-
+    
 	/* We're only interested in connectable events */
 	if (type == BT_GAP_ADV_TYPE_ADV_IND ||
 	    type == BT_GAP_ADV_TYPE_ADV_DIRECT_IND) {
@@ -182,6 +185,7 @@ static void start_scan(void)
 	printk("Scanning successfully started\n");
 }
 
+
 static void connected(struct bt_conn *conn, uint8_t conn_err)
 {
 	char addr[BT_ADDR_LE_STR_LEN];
@@ -195,7 +199,7 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 		bt_conn_unref(default_conn);
 		default_conn = NULL;
 
-		start_scan();
+		//start_scan();
 		return;
 	}
 
@@ -213,7 +217,7 @@ static void connected(struct bt_conn *conn, uint8_t conn_err)
 		if (err) {
 			printk("Discover failed(err %d)\n", err);
 			return;
-		}
+		}		
 	}
 }
 
@@ -232,13 +236,77 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 	bt_conn_unref(default_conn);
 	default_conn = NULL;
 
-	start_scan();
+	//start_scan();
 }
 
 BT_CONN_CB_DEFINE(conn_callbacks) = {
 	.connected = connected,
 	.disconnected = disconnected,
 };
+
+
+#include <zephyr/shell/shell.h>
+
+bt_addr_le_t connect_dst_addr;
+
+int disconnect_period;
+
+int bt_addr_from_str(const char *str, bt_addr_t *addr);
+
+K_MSGQ_DEFINE(swtimer_msgq, 32, 10, 4);
+typedef struct
+{
+    uint8_t buf;
+    uint32_t len;
+} T_RTL_CENTRAL_SEND_BUF;
+T_RTL_CENTRAL_SEND_BUF central_send_buf;
+
+
+void timer_expired_handler(struct k_timer *timer);
+K_TIMER_DEFINE(central_period_timer, timer_expired_handler, NULL);
+
+
+
+void timer_expired_handler(struct k_timer *timer)
+{
+	
+	central_send_buf.buf =1;
+	k_msgq_put(&swtimer_msgq, &central_send_buf, K_NO_WAIT);
+	
+}
+
+int connect_dst_info(const struct shell *sh, size_t argc, char **argv)
+{
+
+    shell_print(sh, "argv[0]=%s",argv[0]);
+	bt_addr_from_str(argv[1], &connect_dst_addr.a);
+    shell_print(sh, "argv[1]=%s",argv[1]);
+	printk("test addr %02X %02X %02X %02X %02X %02X\n",
+			connect_dst_addr.a.val[5], connect_dst_addr.a.val[4], connect_dst_addr.a.val[3],
+			connect_dst_addr.a.val[2], connect_dst_addr.a.val[1], connect_dst_addr.a.val[0]);
+    return 0;
+
+}
+
+int disconnect_period_info(const struct shell *sh, size_t argc, char **argv)
+{
+    int err = 0;
+    shell_print(sh, "argv[0]=%s",argv[0]);
+    disconnect_period=shell_strtoul(argv[1], 0, &err);
+    printk("disconnect period=%d\n",disconnect_period);
+	k_timer_start(&central_period_timer, K_MSEC(0), K_MSEC(disconnect_period*1000));
+    return 0;
+
+}
+
+ SHELL_STATIC_SUBCMD_SET_CREATE(ble_user_cmds,
+    SHELL_CMD_ARG(connect-dst, NULL, "set dst", connect_dst_info, 1, 1),
+    SHELL_CMD_ARG(disconnect-period, NULL, "disconnect period s", disconnect_period_info, 1, 1),
+   SHELL_SUBCMD_SET_END
+  );
+ SHELL_CMD_ARG_REGISTER(ble_user, &ble_user_cmds, "mesh user define commands",NULL, 1, 1);
+
+
 
 int main(void)
 {
@@ -252,6 +320,36 @@ int main(void)
 
 	printk("Bluetooth initialized\n");
 
-	start_scan();
+	//start_scan();
+
+     while (1) {
+    
+        k_msgq_get(&swtimer_msgq, &central_send_buf, K_FOREVER);
+        if(central_send_buf.buf==1)
+        {
+           central_send_buf.buf=0;
+          
+		   struct bt_le_conn_param *param;
+		   param = BT_LE_CONN_PARAM_DEFAULT;
+		   if(default_conn==NULL)
+		   { 
+			   printk("timer-expried:try connect\n");
+			   err = bt_conn_le_create(&connect_dst_addr, BT_CONN_LE_CREATE_CONN,param, &default_conn);
+		      if (err) {
+					printk("Create conn failed (err %d)\n", err);
+					
+		       }
+		   }
+		   else
+		   {
+		      printk("timer-expried: connected\n");
+
+		   }
+            
+            k_yield();
+        }    
+     }
+
+
 	return 0;
 }

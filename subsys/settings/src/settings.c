@@ -231,6 +231,7 @@ int settings_call_set_handler(const char *name,
 
 int settings_commit(void)
 {
+	printk("settings_commit\n");
 	return settings_commit_subtree(NULL);
 }
 
@@ -240,7 +241,7 @@ int settings_commit_subtree(const char *subtree)
 	int rc2;
 
 	rc = 0;
-
+    printk("settings_commit_subtree\n");
 	STRUCT_SECTION_FOREACH(settings_handler_static, ch) {
 		if (subtree && !settings_name_steq(ch->name, subtree, NULL)) {
 			continue;

@@ -289,7 +289,8 @@ int bt_mesh_pb_gatt_srv_adv_start(void)
 		struct bt_le_adv_param slow_adv_param = {
 			.id = BT_ID_DEFAULT,
 			.options = ADV_OPT_PROV,
-			ADV_SLOW_INT,
+			//ADV_SLOW_INT,
+			ADV_FAST_INT,
 		};
 
 		return bt_mesh_adv_gatt_start(&slow_adv_param, SYS_FOREVER_MS, prov_ad,

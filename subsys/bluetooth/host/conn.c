@@ -1010,8 +1010,8 @@ struct bt_conn *conn_lookup_handle(struct bt_conn *conns, size_t size,
 void bt_conn_set_state(struct bt_conn *conn, bt_conn_state_t state)
 {
 	bt_conn_state_t old_state;
-
-	LOG_DBG("%s -> %s", state2str(conn->state), state2str(state));
+ 
+	LOG_DBG("bt_conn_set_state %s -> %s", state2str(conn->state), state2str(state));
 
 	if (conn->state == state) {
 		LOG_WRN("no transition %s", state2str(state));
@@ -1196,7 +1196,7 @@ void bt_conn_set_state(struct bt_conn *conn, bt_conn_state_t state)
 struct bt_conn *bt_conn_lookup_handle(uint16_t handle, enum bt_conn_type type)
 {
 	struct bt_conn *conn;
-
+    //printk("bt_conn_lookup_handle\n");
 #if defined(CONFIG_BT_CONN)
 	conn = conn_lookup_handle(acl_conns, ARRAY_SIZE(acl_conns), handle);
 	if (conn) {
@@ -1234,7 +1234,7 @@ void bt_conn_foreach(enum bt_conn_type type,
 		     void *data)
 {
 	int i;
-
+    LOG_DBG("bt_conn_foreach");
 #if defined(CONFIG_BT_CONN)
 	for (i = 0; i < ARRAY_SIZE(acl_conns); i++) {
 		struct bt_conn *conn = bt_conn_ref(&acl_conns[i]);
@@ -1442,7 +1442,7 @@ void bt_conn_connected(struct bt_conn *conn)
 static int conn_disconnect(struct bt_conn *conn, uint8_t reason)
 {
 	int err;
-
+    //printk("conn_disconnect\n");
 	err = bt_hci_disconnect(conn->handle, reason);
 	if (err) {
 		return err;
@@ -1462,6 +1462,7 @@ int bt_conn_disconnect(struct bt_conn *conn, uint8_t reason)
 	 * and we could send LE Create Connection as soon as the remote
 	 * starts advertising.
 	 */
+	//printk("bt_conn_disconnect\n");
 #if !defined(CONFIG_BT_FILTER_ACCEPT_LIST)
 	if (IS_ENABLED(CONFIG_BT_CENTRAL) &&
 	    conn->type == BT_CONN_TYPE_LE) {

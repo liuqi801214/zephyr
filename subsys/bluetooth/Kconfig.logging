@@ -951,6 +951,10 @@ endmenu # BR/EDR
 # MESH (subsys/bluetooth/mesh/Kconfig)
 
 menu "Mesh"
+module = RTK_OSIF
+legacy-debug-sym = RTK_OSIF_DEBUG
+module-str = "Debug osif zephyr"
+source "subsys/bluetooth/common/Kconfig.template.log_config_bt"
 
 module = BT_MESH
 legacy-debug-sym = BT_MESH_DEBUG

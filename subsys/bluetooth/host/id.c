@@ -1730,7 +1730,13 @@ int bt_id_set_scan_own_addr(bool active_scan, uint8_t *own_addr_type)
 					err);
 			}
 
-			*own_addr_type = BT_ADDR_LE_RANDOM;
+			//*own_addr_type = BT_ADDR_LE_RANDOM;
+			 if(CONFIG_RTL_BT_ADV_AND_SCAN_USER_PUBLIC_ADDR==0)
+             {
+                *own_addr_type = BT_ADDR_LE_RANDOM;
+             }
+             else
+                *own_addr_type = BT_ADDR_LE_PUBLIC;
 		} else if (IS_ENABLED(CONFIG_BT_SCAN_WITH_IDENTITY) &&
 			   *own_addr_type == BT_ADDR_LE_RANDOM) {
 			/* If scanning with Identity Address we must set the
@@ -1843,8 +1849,18 @@ int bt_id_set_adv_own_addr(struct bt_le_ext_adv *adv, uint32_t options,
 				bt_le_scan_set_enable(BT_HCI_LE_SCAN_DISABLE);
 			}
 #endif /* defined(CONFIG_BT_OBSERVER) */
-			err = bt_id_set_adv_private_addr(adv);
-			*own_addr_type = BT_ADDR_LE_RANDOM;
+			// err = bt_id_set_adv_private_addr(adv);
+			// *own_addr_type = BT_ADDR_LE_RANDOM;
+            if(CONFIG_RTL_BT_ADV_AND_SCAN_USER_PUBLIC_ADDR==0)
+            {  
+                err = bt_id_set_adv_private_addr(adv);
+               *own_addr_type = BT_ADDR_LE_RANDOM;
+            }
+            else
+            {
+              //printk("BT_ADDR_LE_PUBLIC\n");
+              *own_addr_type = BT_ADDR_LE_PUBLIC;
+            }
 
 #if defined(CONFIG_BT_OBSERVER)
 			if (scan_enabled) {
@@ -1852,8 +1868,18 @@ int bt_id_set_adv_own_addr(struct bt_le_ext_adv *adv, uint32_t options,
 			}
 #endif /* defined(CONFIG_BT_OBSERVER) */
 		} else {
-			err = bt_id_set_adv_private_addr(adv);
-			*own_addr_type = BT_ADDR_LE_RANDOM;
+			//err = bt_id_set_adv_private_addr(adv);
+			//*own_addr_type = BT_ADDR_LE_RANDOM;
+			if(CONFIG_RTL_BT_ADV_AND_SCAN_USER_PUBLIC_ADDR==0)
+            {  
+                err = bt_id_set_adv_private_addr(adv);
+               *own_addr_type = BT_ADDR_LE_RANDOM;
+            }
+            else{
+                //printk("BT_ADDR_LE_PUBLIC\n");
+                *own_addr_type = BT_ADDR_LE_PUBLIC;
+            }
+
 		}
 
 		if (err) {

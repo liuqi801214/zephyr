@@ -12,6 +12,16 @@
 #include <zephyr/drivers/timer/system_timer.h>
 #include <zephyr/sys_clock.h>
 
+/* Start: To support RTK PM */
+#include <os_queue.h>
+#include <os_pm.h>
+#define EXCLUDE_TIMER_MAX_NUMBER 10
+extern T_OS_QUEUE lpm_excluded_handle[PLATFORM_PM_EXCLUDED_TYPE_MAX];
+static int announce_remaining_rtk_pm;
+static struct k_spinlock timeout_lock_rtk_pm;
+struct _timeout *to_exclude[EXCLUDE_TIMER_MAX_NUMBER];
+/* End: To support RTK PM */
+
 static uint64_t curr_tick;
 
 static sys_dlist_t timeout_list = SYS_DLIST_STATIC_INIT(&timeout_list);
@@ -338,7 +348,7 @@ void z_vrfy_sys_clock_tick_set(uint64_t tick)
 }
 #endif
 
-/* to realize the realtek power manager, we have to export these four APIs */
+/* To support RTK PM */
 struct _timeout *get_first_timeout(void)
 {
     sys_dnode_t *t = sys_dlist_peek_head(&timeout_list);
@@ -355,43 +365,43 @@ struct _timeout *get_next_timeout(struct _timeout *t)
 
 void sys_clock_announce_only_add_ticks(int32_t ticks)
 {
-	k_spinlock_key_t key = k_spin_lock(&timeout_lock);
+	k_spinlock_key_t key = k_spin_lock(&timeout_lock_rtk_pm);
 
-	announce_remaining += ticks;
+	announce_remaining_rtk_pm += ticks;
 	curr_tick += ticks;
 
-	k_spin_unlock(&timeout_lock, key);
+	k_spin_unlock(&timeout_lock_rtk_pm, key);
 }
 
 void sys_clock_announce_process_timeout(void)
 {
-	k_spinlock_key_t key = k_spin_lock(&timeout_lock);
+	k_spinlock_key_t key = k_spin_lock(&timeout_lock_rtk_pm);
 
 	struct _timeout *t;
 
 	for (t = first();
-	     (t != NULL) && (t->dticks <= announce_remaining);
+	     (t != NULL) && (t->dticks <= announce_remaining_rtk_pm);
 	     t = first()) {
 		int dt = t->dticks;
-
 		t->dticks = 0;
 		remove_timeout(t);
 
-		k_spin_unlock(&timeout_lock, key);
+		k_spin_unlock(&timeout_lock_rtk_pm, key);
 		t->fn(t);
-		key = k_spin_lock(&timeout_lock);
-		announce_remaining -= dt;
+		key = k_spin_lock(&timeout_lock_rtk_pm);
+
+		announce_remaining_rtk_pm -= dt;
 	}
 
 	if (t != NULL) {
-		t->dticks -= announce_remaining;
+		t->dticks -= announce_remaining_rtk_pm;
 	}
 
-	announce_remaining = 0;
+	announce_remaining_rtk_pm = 0;
 
 	sys_clock_set_timeout(next_timeout(), false);
 
-	k_spin_unlock(&timeout_lock, key);
+	k_spin_unlock(&timeout_lock_rtk_pm, key);
 
 #ifdef CONFIG_TIMESLICING
 	z_time_slice();

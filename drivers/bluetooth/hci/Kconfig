@@ -197,3 +197,7 @@ config BT_SILABS_HCI_BUFFER_MEMORY
 	help
 	  Select the size of allocated memory buffer for the Silicon Labs
 	  Bluetooth Library.
+	  
+config RTL_BT_RX_PRIO
+    int "realtek bt rx prio"
+    default 8
