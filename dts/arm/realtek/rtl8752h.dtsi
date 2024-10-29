@@ -70,9 +70,15 @@
 				device_type = "rom data region";
 				reg = < 0x280000 (DT_SIZE_K(1)+512)>;
 			};
-			heap1: memory@280600{
+			app_ram_data2: memory@280600{
+				compatible = "zephyr,memory-region";
+				device_type = "bufer ram data region";
+				zephyr,memory-region = "RAM2";
+				reg = < 0x280600 (DT_SIZE_K(1)+512)>;
+			};
+			heap1: memory@280C00{
 				device_type = "heap region";
-				reg = < 0x280600 (DT_SIZE_K(14)+512)>;
+				reg = < 0x280C00 (DT_SIZE_K(13))>;
 			};
 		};
 
