@@ -20,6 +20,9 @@
 
 #include "board.h"
 
+#include "zephyr/kernel.h"
+extern bool os_mem_peek_zephyr(uint8_t ram_type, size_t *p_size);
+
 #define OP_ONOFF_GET       BT_MESH_MODEL_OP_2(0x82, 0x01)
 #define OP_ONOFF_SET       BT_MESH_MODEL_OP_2(0x82, 0x02)
 #define OP_ONOFF_SET_UNACK BT_MESH_MODEL_OP_2(0x82, 0x03)
@@ -300,11 +303,13 @@ static const struct bt_mesh_prov prov = {
 };
 
 /** Send an OnOff Set message from the Generic OnOff Client to all nodes. */
-static int gen_onoff_send(bool val)
+//static int gen_onoff_send(bool val)
+static int gen_onoff_send(bool val,uint16_t dst)
 {
 	struct bt_mesh_msg_ctx ctx = {
 		.app_idx = models[3].keys[0], /* Use the bound key */
-		.addr = BT_MESH_ADDR_ALL_NODES,
+		//.addr = BT_MESH_ADDR_ALL_NODES,
+		.addr = dst,
 		.send_ttl = BT_MESH_TTL_DEFAULT,
 	};
 	static uint8_t tid;
@@ -328,7 +333,8 @@ static int gen_onoff_send(bool val)
 static void button_pressed(struct k_work *work)
 {
 	if (bt_mesh_is_provisioned()) {
-		(void)gen_onoff_send(!onoff.val);
+		//(void)gen_onoff_send(!onoff.val);
+		(void)gen_onoff_send(!onoff.val,0);
 		return;
 	}
 
@@ -374,6 +380,8 @@ static void button_pressed(struct k_work *work)
 	printk("Provisioned and configured!\n");
 }
 
+char addr_s[BT_ADDR_LE_STR_LEN];//2024-10-29
+
 static void bt_ready(int err)
 {
 	if (err) {
@@ -393,11 +401,167 @@ static void bt_ready(int err)
 		settings_load();
 	}
 
+    /*get mac address for uuid 2024-10-29*/
+    bt_addr_le_t device_addr;
+    size_t count = 1;
+    bt_id_get(&device_addr, &count);
+    memcpy(dev_uuid,device_addr.a.val,6);
+    bt_addr_le_to_str(&device_addr, addr_s, sizeof(addr_s));
+    printk("advertising addr as %s\n", addr_s);
+
+
 	/* This will be a no-op if settings_load() loaded provisioning info */
 	bt_mesh_prov_enable(BT_MESH_PROV_ADV | BT_MESH_PROV_GATT);
 
+   size_t p_size;
+   os_mem_peek_zephyr(0, &p_size);
+   os_mem_peek_zephyr(1, &p_size);
 	printk("Mesh initialized\n");
 }
+
+/*在main.c的static void bt_ready(int err)之后,main()之前，添加如下code*/
+
+/*
+ sw timer
+*/
+#if defined(CONFIG_BT_MESH_SHELL)
+
+#include <zephyr/shell/shell.h>
+#include <stdio.h>
+#include "mesh/access.h"
+#include "mesh/net.h"
+#include "common/bt_str.h"
+#include "mesh/shell/utils.h"
+#include <zephyr/bluetooth/mesh/shell.h>
+
+struct app_key_val {
+    uint16_t net_idx;
+    bool updated;
+    struct bt_mesh_key val[2];
+} __packed;
+
+char net_key_index[8];
+void read_app_key(uint16_t app_idx,struct app_key_val *app_key);
+struct app_key_val read_appkey;
+K_MSGQ_DEFINE(swtimer_msgq, 32, 10, 4);
+typedef struct
+{
+    uint8_t buf;
+    uint32_t len;
+} T_RTL_MESH_SEND_BUF;
+T_RTL_MESH_SEND_BUF mesh_send_buf;
+
+uint16_t mesh_msg_send_count=0;
+uint16_t mesh_msg_send_max_count=0;
+
+void timer_expired_handler(struct k_timer *timer);
+K_TIMER_DEFINE(test_timer, timer_expired_handler, NULL);
+
+uint16_t send_dst = 0;
+
+void timer_expired_handler(struct k_timer *timer)
+{
+    //LOG_INF("Timer expired");
+    if(mesh_msg_send_max_count!=0)
+    {
+       mesh_msg_send_count++;
+       if(mesh_msg_send_count<mesh_msg_send_max_count)
+       { 
+         mesh_send_buf.buf =1;
+         k_msgq_put(&swtimer_msgq, &mesh_send_buf, K_NO_WAIT);
+       }
+       else
+       {
+        mesh_msg_send_count=0;
+        k_timer_stop(&test_timer);
+       }
+    }
+    else
+    {
+         mesh_send_buf.buf =1;
+         k_msgq_put(&swtimer_msgq, &mesh_send_buf, K_NO_WAIT); 
+    }
+    
+}
+
+static int cmd_mesh_test_start(const struct shell *sh, size_t argc,
+			      char **argv, uint32_t period)
+{
+	ARG_UNUSED(argv);
+	k_timer_start(&test_timer, K_MSEC(period), K_MSEC(period));//K_NO_WAIT);
+
+	return 0;
+}
+
+
+static int cmd_mesh_test_start_demo(const struct shell *sh, size_t argc,
+				   char **argv)
+{
+	//char sw_period=20;
+	//char max_count=0;
+	//sscanf(argv[1], "%hhd", &sw_period);
+	//sscanf(argv[2], "%hhd", &max_count);
+	int err = 0;
+	uint16_t sw_period =200;
+    uint16_t max_count=0;
+	send_dst = shell_strtoul(argv[1], 0, &err);
+	sw_period= shell_strtoul(argv[2], 0, &err);
+	max_count= shell_strtoul(argv[3], 0, &err);
+	mesh_msg_send_max_count = max_count;
+	shell_print(sh, "argv[0]=%s,argv[1]=%s,dst=%d,argv[2]=%s,sw_period=%d,argv[3]=%s,max_count=%d,",argv[0],argv[1],send_dst,\
+	                 argv[2],sw_period,argv[3],mesh_msg_send_max_count);
+	return cmd_mesh_test_start(sh, argc, argv, sw_period);
+}
+
+
+int mesh_key_info(const struct shell *sh, size_t argc, char **argv)
+{
+    int err = 0;
+    struct bt_mesh_subnet *sub;
+    struct bt_mesh_elem *elem;
+    //shell_print(sh, "rtl8762gn_evb");
+    sub = bt_mesh_subnet_get(0);
+    shell_print(sh, "argv[0]=%s",argv[0]);
+    //sscanf(argv[1], "%hhd", net_key_index);
+    net_key_index[0]=shell_strtoul(argv[1], 0, &err);
+    read_app_key(0,&read_appkey);
+    //unsigned int net_key_index =hex_string_to_int(argv[1]);
+    shell_print(sh, "argv[1]=%s",argv[1]);
+    shell_print(sh, "net_key_index[0]=%d",net_key_index[0]);
+    shell_print(sh,"NetKey %s", bt_hex(&sub->keys[0].net, sizeof(struct bt_mesh_key)));
+    shell_print(sh,"devKey %s", bt_hex(&bt_mesh.dev_key, sizeof(struct bt_mesh_key)));
+    shell_print(sh,"appKey %s", bt_hex(&read_appkey.val[0], sizeof(struct bt_mesh_key)));
+    shell_print(sh, "IV Index is 0x%08x", bt_mesh.iv_index);
+    uint16_t ele_addr=bt_mesh_primary_addr();
+    shell_print(sh, "primary_addr=%x",ele_addr);
+    elem = bt_mesh_elem_find(ele_addr); 
+    for (uint16_t i = 0U; i < comp.elem[0].model_count; i++) {
+          shell_print(sh,"model_id(elem 0)=%x", comp.elem[0].models[i].id);
+           if(ele_addr !=0) {
+                for (uint8_t j = 0; j < elem->models[i].keys_cnt; j++) {
+                   if (elem->models[i].keys[j] != BT_MESH_KEY_UNUSED) {
+                      shell_print(sh,"appkeys_bind_idx =%d",elem->models[i].keys[j]);
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+SHELL_STATIC_SUBCMD_SET_CREATE(mesh_user_cmds,          
+       SHELL_CMD_ARG(key-show, NULL, "netkey index", mesh_key_info, 1, 1),
+       SHELL_CMD_ARG(mesh-send, NULL, "[<Dst:(0=>0xffff)> <period:ms> <count:(0=>unlimited)>]", cmd_mesh_test_start_demo, 1, 3),
+       #if CONFIG_PM
+       #endif
+     SHELL_SUBCMD_SET_END
+    );
+ SHELL_CMD_ARG_REGISTER(mesh_user, &mesh_user_cmds, "mesh user define commands", NULL, 1, 1);
+
+
+#endif
+
+
+
 
 int main(void)
 {
@@ -430,5 +594,32 @@ int main(void)
 	if (err) {
 		printk("Bluetooth init failed (err %d)\n", err);
 	}
+
+    #if defined(CONFIG_BT_MESH_SHELL)
+    /*
+     2024-10-29 lq_liu
+     get info from my_fifo to send mesh message by gen_onoff_send 
+     */
+     //T_RTL_MESH_SEND_BUF *rx_data;
+     while (1) {
+    
+        k_msgq_get(&swtimer_msgq, &mesh_send_buf, K_FOREVER);
+        if(mesh_send_buf.buf==1)
+        {
+           mesh_send_buf.buf=0;
+           //lq_threads_test(lq_sh);
+           onoff.val=!onoff.val;
+           err=gen_onoff_send(onoff.val,send_dst);
+           if(err!=0)
+           {
+              k_timer_stop(&test_timer);
+              printk("err=%d gen_onoff_send\n",err);
+           }
+            //rx_data->buf=0;
+            k_yield();
+        }    
+     }
+    #endif
+
 	return 0;
 }
