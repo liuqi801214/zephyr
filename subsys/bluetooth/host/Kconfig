@@ -1082,4 +1082,8 @@ config BT_HCI_VS_EVT_USER
 	  Enable registering a callback for delegating to the user the handling of
 	  VS events that are not known to the stack
 
+config RTL_BT_ADV_AND_SCAN_USER_PUBLIC_ADDR
+    int "User set legacy adv and extend adv and scan use public addr"
+    default 0
+	
 endmenu

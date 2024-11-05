@@ -439,7 +439,7 @@ static int app_key_status(struct bt_mesh_model *model,
 		if (param->status) {
 			*param->status = status;
 		}
-
+        printk("app_key_status-ack_ctx_rx\n");
 		bt_mesh_msg_ack_ctx_rx(&cli->ack_ctx);
 	}
 
@@ -1422,7 +1422,6 @@ int bt_mesh_cfg_cli_app_key_add(uint16_t net_idx, uint16_t addr, uint16_t key_ne
 	bt_mesh_model_msg_init(&msg, OP_APP_KEY_ADD);
 	key_idx_pack_pair(&msg, key_net_idx, key_app_idx);
 	net_buf_simple_add_mem(&msg, app_key, 16);
-
 	return bt_mesh_msg_ackd_send(cli->model, &ctx, &msg, !status ? NULL : &rsp);
 }
 

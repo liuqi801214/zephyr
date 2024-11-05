@@ -595,6 +595,7 @@ static void prov_node_add(void)
 	}
 
 	if (IS_ENABLED(CONFIG_BT_SETTINGS)) {
+		printk("cdb_node_store\n");
 		bt_mesh_cdb_node_store(node);
 	}
 

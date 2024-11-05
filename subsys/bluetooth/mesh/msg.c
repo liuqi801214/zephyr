@@ -121,10 +121,12 @@ int bt_mesh_msg_ackd_send(struct bt_mesh_model *model, struct bt_mesh_msg_ctx *c
 	err = bt_mesh_msg_send(model, ctx, buf);
 
 	if (!rsp) {
+		printk("rsp=null\n");
 		return err;
 	}
 
 	if (!err) {
+		printk("msg_ack_ctx_wait timout =%d\n",rsp->timeout);
 		return bt_mesh_msg_ack_ctx_wait(rsp->ack, K_MSEC(rsp->timeout));
 	}
 

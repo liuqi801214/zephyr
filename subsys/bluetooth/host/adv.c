@@ -1633,9 +1633,18 @@ int bt_le_ext_adv_start(struct bt_le_ext_adv *adv,
 			bt_id_set_adv_private_addr(adv);
 		}
 	} else {
-		if (!atomic_test_bit(adv->flags, BT_ADV_USE_IDENTITY)) {
-			bt_id_set_adv_private_addr(adv);
-		}
+		// if (!atomic_test_bit(adv->flags, BT_ADV_USE_IDENTITY)) {
+		// 	bt_id_set_adv_private_addr(adv);
+		// }
+		 if (!atomic_test_bit(adv->flags, BT_ADV_USE_IDENTITY)) {
+            //bt_id_set_adv_private_addr(adv);
+            if(CONFIG_RTL_BT_ADV_AND_SCAN_USER_PUBLIC_ADDR==0)
+            {  
+              //printk("bt_id_set_adv_private_addr\n");
+              bt_id_set_adv_private_addr(adv);
+            }
+        }
+
 	}
 
 	if (get_adv_name_type(adv) != ADV_NAME_TYPE_NONE &&

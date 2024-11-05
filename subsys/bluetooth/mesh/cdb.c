@@ -586,7 +586,7 @@ static struct node_update *cdb_node_update_find(uint16_t addr,
 			match = update;
 		}
 	}
-
+    printk("node_update_find idx =%d\n",i);
 	return match;
 }
 

@@ -140,11 +140,15 @@ static inline void buf_send(struct net_buf *buf)
 
 	bt_data_send(num_events, adv_int, &ad, 1, BT_MESH_ADV(buf));
 }
+#include "zephyr/kernel.h"
+extern bool os_mem_peek_zephyr(uint8_t ram_type, size_t *p_size);
 
 static void adv_thread(void *p1, void *p2, void *p3)
 {
 	LOG_DBG("started");
-
+    size_t p_size;
+    os_mem_peek_zephyr(0, &p_size);
+    os_mem_peek_zephyr(1, &p_size);
 	while (1) {
 		struct net_buf *buf;
 

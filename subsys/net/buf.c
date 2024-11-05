@@ -458,6 +458,8 @@ void net_buf_put(struct k_fifo *fifo, struct net_buf *buf)
 	k_fifo_put(fifo, buf);
 }
 
+struct  k_spinlock buf_unref_lock;//定义自旋锁
+
 #if defined(CONFIG_NET_BUF_LOG)
 void net_buf_unref_debug(struct net_buf *buf, const char *func, int line)
 #else
@@ -465,7 +467,8 @@ void net_buf_unref(struct net_buf *buf)
 #endif
 {
 	__ASSERT_NO_MSG(buf);
-
+    k_spinlock_key_t key;
+	key = k_spin_lock(&buf_unref_lock);//上锁
 	while (buf) {
 		struct net_buf *frags = buf->frags;
 		struct net_buf_pool *pool;
@@ -481,6 +484,7 @@ void net_buf_unref(struct net_buf *buf)
 			    buf->pool_id, buf->frags);
 
 		if (--buf->ref > 0) {
+			k_spin_unlock(&buf_unref_lock, key);//解锁
 			return;
 		}
 
@@ -500,13 +504,16 @@ void net_buf_unref(struct net_buf *buf)
 #endif
 
 		if (pool->destroy) {
+			k_spin_unlock(&buf_unref_lock, key);//解锁
 			pool->destroy(buf);
 		} else {
+			key = k_spin_lock(&buf_unref_lock);//上锁
 			net_buf_destroy(buf);
 		}
 
 		buf = frags;
 	}
+	k_spin_unlock(&buf_unref_lock, key);//解锁
 }
 
 struct net_buf *net_buf_ref(struct net_buf *buf)

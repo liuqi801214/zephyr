@@ -1328,8 +1328,22 @@ void bt_hci_le_enh_conn_complete(struct bt_hci_evt_le_enh_conn_complete *evt)
 		/* Clear advertising even if we are not able to add connection
 		 * object to keep host in sync with controller state.
 		 */
-		atomic_clear_bit(adv->flags, BT_ADV_ENABLED);
-		(void)bt_le_lim_adv_cancel_timeout(adv);
+		// atomic_clear_bit(adv->flags, BT_ADV_ENABLED);
+		// (void)bt_le_lim_adv_cancel_timeout(adv);
+		if(conn){       
+          atomic_clear_bit(adv->flags, BT_ADV_ENABLED);   
+          (void)bt_le_lim_adv_cancel_timeout(adv);
+        }
+        else
+        {   
+            int bt_le_adv_stop(void);
+             if(!(IS_ENABLED(CONFIG_BT_EXT_ADV)))
+             {
+                bt_le_adv_stop();
+                printk("bt_le_adv_stop\n");
+             }
+        }
+
 	}
 
 	if (IS_ENABLED(CONFIG_BT_CENTRAL) &&

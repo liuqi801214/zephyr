@@ -411,7 +411,7 @@ static void unprovisioned_beacon_recv(struct net_buf_simple *buf)
 	}
 
 	LOG_DBG("uuid %s", bt_hex(uuid, 16));
-
+    printk("prov->unprov\n");
 	prov->unprovisioned_beacon(uuid,
 				   (bt_mesh_prov_oob_info_t)oob_info,
 				   uri_hash);
@@ -692,7 +692,9 @@ void bt_mesh_beacon_recv(struct net_buf_simple *buf)
 	type = net_buf_simple_pull_u8(buf);
 	switch (type) {
 	case BEACON_TYPE_UNPROVISIONED:
+	    printk("beacon_recv\n");
 		if (IS_ENABLED(CONFIG_BT_MESH_PB_ADV)) {
+			printk("ubeacon_recv\n");
 			unprovisioned_beacon_recv(buf);
 		}
 		break;

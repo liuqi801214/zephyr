@@ -469,7 +469,7 @@ ssize_t bt_mesh_app_keys_get(uint16_t net_idx, uint16_t app_idxs[], size_t max,
 
 	return count;
 }
-
+#include <zephyr/sys/printk.h>
 int bt_mesh_keys_resolve(struct bt_mesh_msg_ctx *ctx,
 			 struct bt_mesh_subnet **sub,
 			 const struct bt_mesh_key **app_key, uint8_t *aid)
@@ -502,8 +502,10 @@ int bt_mesh_keys_resolve(struct bt_mesh_msg_ctx *ctx,
 			}
 
 			*app_key = &node->dev_key;
+			printk("node add =0x%04x,keys_resolve1 devKey %s\n",node->addr, bt_hex(*app_key, sizeof(struct bt_mesh_key)));
 		} else {
 			*app_key = &bt_mesh.dev_key;
+			 printk("keys_resolve2 devKey %s\n", bt_hex(&bt_mesh.dev_key, sizeof(struct bt_mesh_key)));
 		}
 
 		*aid = 0;
@@ -722,3 +724,22 @@ void bt_mesh_app_key_pending_store(void)
 		}
 	}
 }
+
+#if defined(CONFIG_BT_MESH_SHELL)
+void read_app_key(uint16_t app_idx,struct app_key_val *app_key)
+{
+    const struct app_key *app;
+    app = app_get(app_idx);
+    if (!app) {
+        LOG_WRN("ApKeyIndex 0x%03x not found", app_idx);
+        return;
+    }
+    app_key->net_idx = app->net_idx,
+    app_key->updated = app->updated,
+    memcpy(&app_key->val[0], &app->keys[0].val, sizeof(struct bt_mesh_key));
+    memcpy(&app_key->val[1], &app->keys[1].val, sizeof(struct bt_mesh_key));
+
+}
+#endif
+
+
