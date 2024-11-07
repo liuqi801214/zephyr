@@ -23,6 +23,11 @@
 #include "zephyr/kernel.h"
 extern bool os_mem_peek_zephyr(uint8_t ram_type, size_t *p_size);
 
+#include <zephyr\sys\sys_heap.h>
+extern struct sys_heap z_malloc_heap;
+void log_isr_stack_usage(void);
+
+
 #define OP_ONOFF_GET       BT_MESH_MODEL_OP_2(0x82, 0x01)
 #define OP_ONOFF_SET       BT_MESH_MODEL_OP_2(0x82, 0x02)
 #define OP_ONOFF_SET_UNACK BT_MESH_MODEL_OP_2(0x82, 0x03)
@@ -380,7 +385,35 @@ static void button_pressed(struct k_work *work)
 	printk("Provisioned and configured!\n");
 }
 
+
 char addr_s[BT_ADDR_LE_STR_LEN];//2024-10-29
+
+#include <zephyr/kernel.h>
+#include <zephyr/sys/printk.h>
+#include <zephyr/logging/log.h>
+ 
+#define WATER_LEVEL_KERNEL_STACK_SYM z_interrupt_stacks
+#define WATER_LEVEL_KERNEL_STACK_NAME STRINGIFY(WATER_LEVEL_KERNEL_STACK_SYM)
+K_KERNEL_STACK_DECLARE(WATER_LEVEL_KERNEL_STACK_SYM, CONFIG_ISR_STACK_SIZE);
+void log_isr_stack_usage(void)
+{
+    uintptr_t stack_start = (uintptr_t) WATER_LEVEL_KERNEL_STACK_SYM;
+    size_t stack_size = CONFIG_ISR_STACK_SIZE;
+    uintptr_t stack_end = stack_start + stack_size;
+ 
+    /* Find the first unused stack location */
+    uint8_t *p = (uint8_t *)stack_start;
+    while ((p < (uint8_t *)stack_end) && (*p == 0xaa)) {
+        p++;
+    }
+    size_t used = stack_end - (uintptr_t)p;
+ 
+    printk(WATER_LEVEL_KERNEL_STACK_NAME" size: %zu, used: %zu, available: %zu \n",
+            stack_size, used, stack_size - used);
+}
+
+
+
 
 static void bt_ready(int err)
 {
@@ -416,10 +449,17 @@ static void bt_ready(int err)
    size_t p_size;
    os_mem_peek_zephyr(0, &p_size);
    os_mem_peek_zephyr(1, &p_size);
+   struct sys_memory_stats stats;
+	// low level接口
+	sys_heap_runtime_stats_get(&z_malloc_heap, &stats);
+	log_isr_stack_usage();
+	printk("stdlib malloc heap: heap size: %d, allocated %d, free %d, max allocated %d\n", CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE, stats.allocated_bytes, stats.free_bytes, stats.max_allocated_bytes);
 	printk("Mesh initialized\n");
 }
 
 /*在main.c的static void bt_ready(int err)之后,main()之前，添加如下code*/
+
+
 
 /*
  sw timer
