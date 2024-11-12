@@ -388,6 +388,59 @@ static void button_pressed(struct k_work *work)
 
 char addr_s[BT_ADDR_LE_STR_LEN];//2024-10-29
 
+/*********************************************************** */
+#define NUM_ENTRIES 5 // 二维数组的大小
+// 定义存储 PC、LR 和顺序标记的结构
+typedef struct {
+    uint32_t pc;
+    uint32_t lr;
+    uint32_t msp;
+    uint32_t psp;
+    uint32_t sequence; // 顺序标记
+} cpu_state_t;
+
+volatile cpu_state_t cpu_state_array[NUM_ENTRIES];
+volatile uint32_t count = 0; // 存储位置计数器
+volatile uint32_t global_sequence = 0; // 全局顺序计数器
+
+#include "trace.h"
+void save_cpu_state(uint32_t pc, uint32_t lr, uint32_t msp, uint32_t psp) {
+    // 更新 cpu_state_array
+    cpu_state_array[count].pc = pc;
+    cpu_state_array[count].lr = lr;
+    cpu_state_array[count].msp = msp;
+    cpu_state_array[count].psp = psp;
+    cpu_state_array[count].sequence = global_sequence++;
+
+    // 更新计数器，使用取模操作实现循环存储
+    count = (count + 1) % NUM_ENTRIES;
+}
+void print_cpu_state(void) {
+
+
+    for (int i = 0; i < NUM_ENTRIES; i++)
+    {
+       DBG_DIRECT("Entry %d: PC = 0x%08X, LR = 0x%08X, msp = 0x%08X, psp = 0x%08X,Seq = %u\n", \
+               i, cpu_state_array[i].pc, cpu_state_array[i].lr,  \
+                  cpu_state_array[i].msp, cpu_state_array[i].psp, cpu_state_array[i].sequence);
+               
+    }	
+    
+}
+
+/******************************************************************************* */
+
+#include "trace.h"
+void sys_trace_thread_switched_out_user(void) {
+
+    // k_tid_t new_thread =k_current_get();
+    // DBG_DIRECT("thread out: %s\n", new_thread->name ? new_thread->name : "unknown");
+
+
+}
+
+/******************************************************************************* */
+
 #include <zephyr/kernel.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/logging/log.h>
@@ -411,8 +464,6 @@ void log_isr_stack_usage(void)
     printk(WATER_LEVEL_KERNEL_STACK_NAME" size: %zu, used: %zu, available: %zu \n",
             stack_size, used, stack_size - used);
 }
-
-
 
 
 static void bt_ready(int err)
@@ -499,6 +550,66 @@ K_TIMER_DEFINE(test_timer, timer_expired_handler, NULL);
 
 uint16_t send_dst = 0;
 
+
+void heap_test_timer_expired_handler(struct k_timer *timer);
+K_TIMER_DEFINE(heap_test_timer, heap_test_timer_expired_handler, NULL);
+
+uint16_t heap_mesh_msg_send_count=0;
+uint16_t heap_msg_send_max_count=0;
+
+static int cmd_heap_test_start(const struct shell *sh, size_t argc,
+			      char **argv, uint32_t period)
+{
+	ARG_UNUSED(argv);
+	k_timer_start(&heap_test_timer, K_MSEC(period), K_MSEC(period));//K_NO_WAIT);
+
+	return 0;
+}
+
+void heap_test_timer_expired_handler(struct k_timer *timer)
+{
+    //LOG_INF("Timer expired");
+	print_cpu_state();
+    if(heap_msg_send_max_count!=0)
+    {
+       heap_mesh_msg_send_count++;
+       if(heap_mesh_msg_send_count<heap_msg_send_max_count)
+       { 
+         mesh_send_buf.buf =2;
+         k_msgq_put(&swtimer_msgq, &mesh_send_buf, K_NO_WAIT);
+       }
+       else
+       {
+        heap_mesh_msg_send_count=0;
+        k_timer_stop(&heap_test_timer);
+       }
+    }
+    else
+    {
+         mesh_send_buf.buf =2;
+         k_msgq_put(&swtimer_msgq, &mesh_send_buf, K_NO_WAIT); 
+    }
+    
+}
+
+
+static int cmd_heap_test_start_demo(const struct shell *sh, size_t argc,
+				   char **argv)
+{
+
+	int err = 0;
+	uint16_t sw_period =200;
+    uint16_t max_count=0;
+	sw_period = shell_strtoul(argv[1], 0, &err);
+	max_count= shell_strtoul(argv[2], 0, &err);
+    heap_msg_send_max_count=max_count;
+	shell_print(sh, "argv[0]=%s,argv[1]=%s,argv[2]=%s,sw_period=%d,max_count=%d,",argv[0],argv[1],argv[1],sw_period,\
+	                 max_count);
+	return cmd_heap_test_start(sh, argc, argv, sw_period);
+}
+
+
+
 void timer_expired_handler(struct k_timer *timer)
 {
     //LOG_INF("Timer expired");
@@ -524,6 +635,7 @@ void timer_expired_handler(struct k_timer *timer)
     
 }
 
+
 static int cmd_mesh_test_start(const struct shell *sh, size_t argc,
 			      char **argv, uint32_t period)
 {
@@ -532,7 +644,6 @@ static int cmd_mesh_test_start(const struct shell *sh, size_t argc,
 
 	return 0;
 }
-
 
 static int cmd_mesh_test_start_demo(const struct shell *sh, size_t argc,
 				   char **argv)
@@ -552,6 +663,8 @@ static int cmd_mesh_test_start_demo(const struct shell *sh, size_t argc,
 	                 argv[2],sw_period,argv[3],mesh_msg_send_max_count);
 	return cmd_mesh_test_start(sh, argc, argv, sw_period);
 }
+
+
 
 
 int mesh_key_info(const struct shell *sh, size_t argc, char **argv)
@@ -588,7 +701,8 @@ int mesh_key_info(const struct shell *sh, size_t argc, char **argv)
     return 0;
 }
 
-SHELL_STATIC_SUBCMD_SET_CREATE(mesh_user_cmds,          
+SHELL_STATIC_SUBCMD_SET_CREATE(mesh_user_cmds,     
+       SHELL_CMD_ARG(heap-test, NULL, "[<period:ms> count:(0=>unlimited)>]", cmd_heap_test_start_demo, 1,2), 
        SHELL_CMD_ARG(key-show, NULL, "netkey index", mesh_key_info, 1, 1),
        SHELL_CMD_ARG(mesh-send, NULL, "[<Dst:(0=>0xffff)> <period:ms> <count:(0=>unlimited)>]", cmd_mesh_test_start_demo, 1, 3),
        #if CONFIG_PM
@@ -656,10 +770,34 @@ int main(void)
               printk("err=%d gen_onoff_send\n",err);
            }
             //rx_data->buf=0;
-            k_yield();
-        }    
+            
+        }
+		else if(mesh_send_buf.buf==2)
+		{
+            mesh_send_buf.buf=0;
+		//    size_t p_size;
+        //    os_mem_peek_zephyr(0, &p_size);
+		//    os_mem_peek_zephyr(1, &p_size);
+		//    struct sys_memory_stats stats;
+		// 	// low level接口
+		// 	sys_heap_runtime_stats_get(&z_malloc_heap, &stats);
+		// 	log_isr_stack_usage();
+		// 	printk("stdlib malloc heap: heap size: %d, allocated %d, free %d, max allocated %d\n", CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE, stats.allocated_bytes, stats.free_bytes, stats.max_allocated_bytes);
+        //     print_cpu_state();
+		 if(heap_mesh_msg_send_count==9)
+		 {
+			DBG_DIRECT("test");
+			while (1)
+			{
+				/* code */
+			}
+			
+		 }
+		}
+        k_yield();
      }
     #endif
 
 	return 0;
 }
+

@@ -204,3 +204,10 @@ config BT_SILABS_HCI_BUFFER_MEMORY
 	help
 	  Select the size of allocated memory buffer for the Silicon Labs
 	  Bluetooth Library.
+
+
+config RTK_READ_BUFFER_SIZE_NUM
+	int "realtek controller buffer size num"
+	default 5
+	help
+	  realtek controller buffer size num

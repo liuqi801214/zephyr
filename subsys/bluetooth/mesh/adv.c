@@ -313,7 +313,7 @@ static void bt_mesh_scan_cb(const bt_addr_le_t *addr, int8_t rssi,
 		}
 
 		if (len > buf->len) {
-			LOG_WRN("AD malformed");
+			LOG_WRN("AD malformed len=%d buf->len=%d",len,buf->len);
 			return;
 		}
 

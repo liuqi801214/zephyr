@@ -353,7 +353,7 @@ int bt_hci_cmd_send_sync(uint16_t opcode, struct net_buf *buf,
 	}
 
 	LOG_DBG("rsp %p opcode 0x%04x len %u", buf, opcode, buf->len);
-
+    //printk("rsp %p opcode 0x%04x len %u,0x%02x,0x%02x,0x%02x,0x%02x\n", buf, opcode, buf->len,buf->data[0],buf->data[1],buf->data[2],buf->data[3]);
 	if (rsp) {
 		*rsp = buf;
 	} else {
@@ -2345,7 +2345,7 @@ static void hci_cmd_complete(struct net_buf *buf)
 	opcode = sys_le16_to_cpu(evt->opcode);
 
 	LOG_DBG("opcode 0x%04x", opcode);
-
+    //printk("hci_cmd_complete opode 0x%04x 0x%02x,0x%02x,0x%02x,0x%04x\n",opcode,buf->data[0],buf->data[1],buf->data[2],buf->data[3]);
 	/* All command return parameters have a 1-byte status in the
 	 * beginning, so we can safely make this generalization.
 	 */
@@ -2857,24 +2857,24 @@ static void read_buffer_size_complete(struct net_buf *buf)
 }
 #endif /* !defined(CONFIG_BT_BREDR) */
 #endif /* CONFIG_BT_CONN */
-
+#include "trace.h"
 static void le_read_buffer_size_complete(struct net_buf *buf)
 {
+	//printk("read_buffer_size 0x%02x,0x%02x,0x%02x,0x%02x\n", buf->data[0],buf->data[1],buf->data[2],buf->data[3]);
 	struct bt_hci_rp_le_read_buffer_size *rp = (void *)buf->data;
 
 	LOG_DBG("status 0x%02x", rp->status);
 
 #if defined(CONFIG_BT_CONN)
 	uint16_t acl_mtu = sys_le16_to_cpu(rp->le_max_len);
-
 	if (!acl_mtu || !rp->le_max_num) {
+	//if (!acl_mtu) {	
 		return;
 	}
 
 	bt_dev.le.acl_mtu = acl_mtu;
 
 	LOG_DBG("ACL LE buffers: pkts %u mtu %u", rp->le_max_num, bt_dev.le.acl_mtu);
-
 	k_sem_init(&bt_dev.le.acl_pkts, rp->le_max_num, rp->le_max_num);
 #endif /* CONFIG_BT_CONN */
 }
@@ -3248,12 +3248,13 @@ static int le_init(void)
 		}
 	} else if (IS_ENABLED(CONFIG_BT_CONN)) {
 		/* Read LE Buffer Size */
+		printk("READ_BUFFER_SIZE\n");
 		err = bt_hci_cmd_send_sync(BT_HCI_OP_LE_READ_BUFFER_SIZE,
 					   NULL, &rsp);
 		if (err) {
 			return err;
 		}
-
+        printk("buffer_size_complete\n");
 		le_read_buffer_size_complete(rsp);
 
 		net_buf_unref(rsp);

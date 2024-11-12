@@ -1124,6 +1124,34 @@ void z_thread_mark_switched_out(void)
 	    (_current_cpu->current->base.thread_state & _THREAD_DUMMY) != 0)
 		return;
 #endif
+    void save_cpu_state(uint32_t pc, uint32_t lr, uint32_t msp, uint32_t psp);
+     uint32_t pc, lr, msp, psp;
+
+    // // 获取进程堆栈指针 (PSP)
+    // __asm volatile ("MRS %0, PSP" : "=r" (psp));
+    // pc = *((uint32_t *)(psp + 0x14));
+    // //lr = *((uint32_t *)(psp + 0x18));
+    // //__asm volatile ("MOV %0, LR" : "=r" ());
+    // // 获取主堆栈指针 (MSP)
+    // __asm volatile ("MRS %0, MSP" : "=r" (msp));
+    // lr = *((uint32_t *)msp + 0x04));
+    
+
+    // // // 获取 LR 和 PC
+    // // __asm volatile (
+    // //     "MOV %0, LR \n"           // 获取当前LR (子程序返回地址)
+    // //     "LDR %1, [SP, #24] \n"    // 获取PC（通过查找栈帧）
+    // //     : "=r" (lr), "=r" (pc)
+    // //     :
+    // //     : "memory");
+
+    __asm volatile ("MRS %0, PSP" : "=r" (psp));
+    __asm volatile ("MRS %0, MSP" : "=r" (msp));
+    uint32_t *stack_ptr = (uint32_t *)psp; // 假设使用 MSP，若任务运行在 PSP，可以改为 psp
+	lr = stack_ptr[5];
+	pc = stack_ptr[6]; 
+    // 调用保存函数
+	save_cpu_state(pc, lr, msp, psp);
 	SYS_PORT_TRACING_FUNC(k_thread, switched_out);
 #endif
 }

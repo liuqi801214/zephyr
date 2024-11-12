@@ -12,7 +12,9 @@
 #include "rtl_bt_hci.h"
 #include "trace.h"
 
-#define F_RTK_BT_HCI_H2C_POOL_SIZE              3*1024
+//#define F_RTK_BT_HCI_H2C_POOL_SIZE              3*1024
+
+#define F_RTK_BT_HCI_H2C_POOL_SIZE    (20+251)*CONFIG_RTK_READ_BUFFER_SIZE_NUM 
 
 LOG_MODULE_REGISTER(bt_driver, CONFIG_BT_HCI_DRIVER_LOG_LEVEL);
 static struct k_thread rx_thread_data;

@@ -593,6 +593,17 @@ static void prov_data(const uint8_t *data)
 		goto session_key_destructor;
 	}
 
+extern struct sys_heap z_malloc_heap;
+void log_isr_stack_usage(void);
+
+    size_t p_size;
+    os_mem_peek_zephyr(0, &p_size);
+    os_mem_peek_zephyr(1, &p_size);
+    struct sys_memory_stats stats;
+	// low level接口
+	sys_heap_runtime_stats_get(&z_malloc_heap, &stats);
+	log_isr_stack_usage();
+	printk("stdlib malloc heap: heap size: %d, allocated %d, free %d, max allocated %d\n", CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE, stats.allocated_bytes, stats.free_bytes, stats.max_allocated_bytes);
 	/* After PB-GATT provisioning we should start advertising
 	 * using Node Identity.
 	 */

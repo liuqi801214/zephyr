@@ -1859,7 +1859,7 @@ int bt_id_set_adv_own_addr(struct bt_le_ext_adv *adv, uint32_t options,
             }
             else
             {
-              printk("BT_ADDR_LE_PUBLIC\n");
+              printk("BT_ADDR_LE_PUBLIC1\n");
               *own_addr_type = BT_ADDR_LE_PUBLIC;
             }
 #if defined(CONFIG_BT_OBSERVER)
@@ -1876,7 +1876,7 @@ int bt_id_set_adv_own_addr(struct bt_le_ext_adv *adv, uint32_t options,
                *own_addr_type = BT_ADDR_LE_RANDOM;
             }
             else{
-                printk("BT_ADDR_LE_PUBLIC\n");
+                printk("BT_ADDR_LE_PUBLIC2\n");
                 *own_addr_type = BT_ADDR_LE_PUBLIC;
             }
 

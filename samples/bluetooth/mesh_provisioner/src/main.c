@@ -320,6 +320,7 @@ static uint8_t check_unconfigured(struct bt_mesh_cdb_node *node, void *data)
 		    }
 			configure_node(node);
             k_sem_reset(&sem_node_added);
+		  //configure_node(node);
 		}
 	}
     printk("CDB_ITER_CONTINUE\n");
@@ -360,6 +361,32 @@ static void button_init(void)
 	gpio_add_callback(button.port, &button_cb_data);
 }
 #endif
+#include <zephyr\sys\sys_heap.h>
+extern struct sys_heap z_malloc_heap;
+
+#include <zephyr/kernel.h>
+#include <zephyr/sys/printk.h>
+#include <zephyr/logging/log.h>
+ 
+#define WATER_LEVEL_KERNEL_STACK_SYM z_interrupt_stacks
+#define WATER_LEVEL_KERNEL_STACK_NAME STRINGIFY(WATER_LEVEL_KERNEL_STACK_SYM)
+K_KERNEL_STACK_DECLARE(WATER_LEVEL_KERNEL_STACK_SYM, CONFIG_ISR_STACK_SIZE);
+void log_isr_stack_usage(void)
+{
+    uintptr_t stack_start = (uintptr_t) WATER_LEVEL_KERNEL_STACK_SYM;
+    size_t stack_size = CONFIG_ISR_STACK_SIZE;
+    uintptr_t stack_end = stack_start + stack_size;
+ 
+    /* Find the first unused stack location */
+    uint8_t *p = (uint8_t *)stack_start;
+    while ((p < (uint8_t *)stack_end) && (*p == 0xaa)) {
+        p++;
+    }
+    size_t used = stack_end - (uintptr_t)p;
+ 
+    printk(WATER_LEVEL_KERNEL_STACK_NAME" size: %zu, used: %zu, available: %zu \n",
+            stack_size, used, stack_size - used);
+}
 
 int main(void)
 {
@@ -377,7 +404,11 @@ int main(void)
 
 	printk("Bluetooth initialized\n");
 	bt_ready();
-
+    struct sys_memory_stats stats;
+	// low level接口
+	sys_heap_runtime_stats_get(&z_malloc_heap, &stats);
+	log_isr_stack_usage();
+	
 #if DT_NODE_HAS_STATUS(SW0_NODE, okay)
 	button_init();
 #endif
