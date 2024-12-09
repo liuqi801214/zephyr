@@ -465,6 +465,9 @@ bool os_sys_tick_increase_zephyr(uint32_t tick_increment,
 
 bool os_lock_zephyr(uint32_t *p_flags)
 {
+   #if defined(CONFIG_SEGGER_SYSTEMVIEW)
+        SEGGER_SYSVIEW_PrintfHost("os_lock_zephyr\r\n");
+	#endif 
     *p_flags = arch_irq_lock();
     return true;
 }
@@ -855,6 +858,9 @@ bool os_task_signal_create_zephyr(void *p_handle, uint32_t count, bool *p_result
         int ret = k_sem_init(sem_obj, count, 0xFFFF);
         if (ret == 0)
         {
+            #if defined(CONFIG_SEGGER_SYSTEMVIEW)
+              SEGGER_SYSVIEW_PrintfHost("signal irq_lock\r\n");
+	         #endif 
             uint32_t key = arch_irq_lock();
             task_sem_array[i].task_handle = p_handle;
             task_sem_array[i].sem_handle = sem_obj ;
@@ -1007,7 +1013,9 @@ bool os_timer_create_zephyr(void **pp_handle, const char *p_timer_name, uint32_t
             *p_result = false;
             return true;
         }
-
+        #if defined(CONFIG_SEGGER_SYSTEMVIEW)
+              SEGGER_SYSVIEW_PrintfHost("timer create irq_lock\r\n");
+	    #endif 
         uint32_t key = arch_irq_lock();
         timer_number_array[i].timer_handle = (void *)(*pp_handle);
         timer_number_array[i].timer_id = timer_id;
@@ -1107,6 +1115,9 @@ bool os_timer_delete_zephyr(void **pp_handle, bool *p_result)
 
     if (timer)
     {
+        #if defined(CONFIG_SEGGER_SYSTEMVIEW)
+              SEGGER_SYSVIEW_PrintfHost("timer dlete irq_lock\r\n");
+	    #endif 
         uint32_t key = arch_irq_lock();
         for (uint8_t i = 0; i < TIMER_NUMBER_MAX; i++)
         {
