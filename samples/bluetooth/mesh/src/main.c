@@ -497,15 +497,15 @@ static void bt_ready(int err)
 	/* This will be a no-op if settings_load() loaded provisioning info */
 	bt_mesh_prov_enable(BT_MESH_PROV_ADV | BT_MESH_PROV_GATT);
 
-   size_t p_size;
-   os_mem_peek_zephyr(0, &p_size);
-   os_mem_peek_zephyr(1, &p_size);
-   struct sys_memory_stats stats;
-	// low level接口
-	sys_heap_runtime_stats_get(&z_malloc_heap, &stats);
-	log_isr_stack_usage();
-	printk("stdlib malloc heap: heap size: %d, allocated %d, free %d, max allocated %d\n", CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE, stats.allocated_bytes, stats.free_bytes, stats.max_allocated_bytes);
-	printk("Mesh initialized\n");
+//    size_t p_size;
+//    os_mem_peek_zephyr(0, &p_size);
+//    os_mem_peek_zephyr(1, &p_size);
+//    struct sys_memory_stats stats;
+// 	// low level接口
+// 	sys_heap_runtime_stats_get(&z_malloc_heap, &stats);
+// 	log_isr_stack_usage();
+// 	printk("stdlib malloc heap: heap size: %d, allocated %d, free %d, max allocated %d\n", CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE, stats.allocated_bytes, stats.free_bytes, stats.max_allocated_bytes);
+// 	printk("Mesh initialized\n");
 }
 
 /*在main.c的static void bt_ready(int err)之后,main()之前，添加如下code*/

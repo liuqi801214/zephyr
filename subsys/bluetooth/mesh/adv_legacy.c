@@ -95,6 +95,9 @@ static int bt_data_send(uint8_t num_events, uint16_t adv_int,
 
 	if (err) {
 		LOG_ERR("Advertising failed: err %d", err);
+		#if defined(CONFIG_SEGGER_SYSTEMVIEW)
+        SEGGER_SYSVIEW_PrintfHost("adv_start failed\r\n");
+	    #endif 
 		return err;
 	}
 
@@ -184,6 +187,9 @@ static void adv_thread(void *p1, void *p2, void *p3)
 		/* busy == 0 means this was canceled */
 		if (BT_MESH_ADV(buf)->busy) {
 			BT_MESH_ADV(buf)->busy = 0U;
+		#if defined(CONFIG_SEGGER_SYSTEMVIEW)
+            SEGGER_SYSVIEW_PrintfHost("buf_send\r\n");
+	     #endif
 			buf_send(buf);
 		}
 

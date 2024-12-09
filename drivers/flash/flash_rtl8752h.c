@@ -4,14 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#define DT_DRV_COMPAT realtek_rtl8752h_flash_controller
-#define SOC_NV_FLASH_NODE DT_INST(0, soc_nv_flash)
 
-#define FLASH_WRITE_BLK_SZ DT_PROP(SOC_NV_FLASH_NODE, write_block_size)
-#define FLASH_ERASE_BLK_SZ DT_PROP(SOC_NV_FLASH_NODE, erase_block_size)
-
-#define FLASH_SIZE DT_REG_SIZE(SOC_NV_FLASH_NODE)
-#define FLASH_ADDR DT_REG_ADDR(SOC_NV_FLASH_NODE)
 
 
 #include <zephyr/kernel.h>
@@ -21,6 +14,16 @@
 
 #include <flash_nor_device.h>
 #include <trace.h>
+
+#define DT_DRV_COMPAT realtek_rtl8752h_flash_controller
+#define SOC_NV_FLASH_NODE DT_INST(0, soc_nv_flash)
+
+#define FLASH_WRITE_BLK_SZ DT_PROP(SOC_NV_FLASH_NODE, write_block_size)
+#define FLASH_ERASE_BLK_SZ DT_PROP(SOC_NV_FLASH_NODE, erase_block_size)
+
+#define FLASH_SIZE DT_REG_SIZE(SOC_NV_FLASH_NODE)
+#define FLASH_ADDR DT_REG_ADDR(SOC_NV_FLASH_NODE)
+
 
 LOG_MODULE_REGISTER(flash_rtl8752h, CONFIG_FLASH_LOG_LEVEL);
 struct flash_rtl8752h_data {
@@ -124,7 +127,9 @@ static int flash_rtl8752h_erase(const struct device *dev, off_t offset, size_t s
 	}
 
 	uint32_t start_addr = FLASH_ADDR + offset;
-
+   #if defined(CONFIG_SEGGER_SYSTEMVIEW)
+        SEGGER_SYSVIEW_PrintfHost("rtl8752h_erase irq lock\r\n");
+	#endif 
 	for (int i = 0; i < size / FLASH_ERASE_BLK_SZ; i++) {
 		uint32_t key = arch_irq_lock();
 

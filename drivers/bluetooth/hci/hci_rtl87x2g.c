@@ -12,9 +12,9 @@
 #include "rtl_bt_hci.h"
 #include "trace.h"
 
-//#define F_RTK_BT_HCI_H2C_POOL_SIZE              3*1024
+ #define F_RTK_BT_HCI_H2C_POOL_SIZE              3*1024
 
-#define F_RTK_BT_HCI_H2C_POOL_SIZE    (20+251)*CONFIG_RTK_READ_BUFFER_SIZE_NUM 
+//#define F_RTK_BT_HCI_H2C_POOL_SIZE    (20+251)*CONFIG_RTK_READ_BUFFER_SIZE_NUM 
 
 LOG_MODULE_REGISTER(bt_driver, CONFIG_BT_HCI_DRIVER_LOG_LEVEL);
 static struct k_thread rx_thread_data;
@@ -26,6 +26,7 @@ typedef struct
 	uint8_t *p_buf;
 	uint32_t len;
 } T_RTL_BT_RX_BUF;
+
 
 static struct
 {
@@ -80,7 +81,9 @@ static bool bt_rtl87x2g_recv_cb(T_RTL_BT_HCI_EVT evt, bool status, uint8_t *p_bu
 	case BT_HCI_EVT_DATA_IND:
 	{
 		T_RTL_BT_RX_BUF *p_rx_buf;
-
+        #if defined(CONFIG_SEGGER_SYSTEMVIEW)
+        SEGGER_SYSVIEW_PrintfHost("recv_cb 0x%02x 0x%02x 0x%02x\r\n",p_buf[0],p_buf[1],p_buf[2]);
+	    #endif 
 		if (p_buf[0] == H4_EVT) {
 			uint8_t evt_flags;
 			struct bt_hci_evt_hdr hdr;
@@ -117,8 +120,13 @@ static bool bt_rtl87x2g_recv_cb(T_RTL_BT_HCI_EVT evt, bool status, uint8_t *p_bu
 				}
 			}
 		}
-
-		p_rx_buf = calloc(1, sizeof(T_RTL_BT_RX_BUF));
+       
+		p_rx_buf = calloc(1, sizeof(T_RTL_BT_RX_BUF));	
+		//p_rx_buf = calloc(1, 255);
+		// extern struct sys_heap z_malloc_heap;
+		// struct sys_memory_stats stats;
+	    // sys_heap_runtime_stats_get(&z_malloc_heap, &stats);
+	    // printk("stdlib malloc heap: heap size: %d, allocated %d, free %d, max allocated %d\n", CONFIG_COMMON_LIBC_MALLOC_ARENA_SIZE, stats.allocated_bytes, stats.free_bytes, stats.max_allocated_bytes);
 		if (p_rx_buf) {
 			/* DBG_DIRECT("[BT] p_rx_buf %p, p_buf %p", p_rx_buf, p_buf); */
 			p_rx_buf->p_buf = p_buf;
@@ -126,6 +134,14 @@ static bool bt_rtl87x2g_recv_cb(T_RTL_BT_HCI_EVT evt, bool status, uint8_t *p_bu
 			k_fifo_put(&rx.fifo, p_rx_buf);
 			break;
 		}
+		
+		// struct net_buf * p_rx_buf =net_buf_alloc(&hci_rx_pool, K_NO_WAIT);
+        // if (p_rx_buf) {
+        //   p_rx_buf->data= p_buf;
+        //   p_rx_buf->len = len;
+        //   k_fifo_put(&rx.fifo, p_rx_buf);
+        //   break;
+		// }
 		rtl_bt_hci_ack(p_buf);
 	}
 	break;

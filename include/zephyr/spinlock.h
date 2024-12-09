@@ -12,6 +12,7 @@
 #ifndef ZEPHYR_INCLUDE_SPINLOCK_H_
 #define ZEPHYR_INCLUDE_SPINLOCK_H_
 
+
 #include <errno.h>
 #include <stdbool.h>
 
@@ -157,6 +158,7 @@ static ALWAYS_INLINE void z_spinlock_validate_post(struct k_spinlock *l)
  * @return A key value that must be passed to k_spin_unlock() when the
  *         lock is released.
  */
+#include "rtl876x_pinmux.h"
 static ALWAYS_INLINE k_spinlock_key_t k_spin_lock(struct k_spinlock *l)
 {
 	ARG_UNUSED(l);
@@ -166,6 +168,7 @@ static ALWAYS_INLINE k_spinlock_key_t k_spin_lock(struct k_spinlock *l)
 	 * implementation.  The "irq_lock()" API in SMP context is
 	 * actually a wrapper for a global spinlock!
 	 */
+	//Pad_Config(P2_0, PAD_SW_MODE, PAD_IS_PWRON, PAD_PULL_DOWN, PAD_OUT_ENABLE, PAD_OUT_HIGH);
 	k.key = arch_irq_lock();
 
 	z_spinlock_validate_pre(l);
@@ -258,6 +261,7 @@ static ALWAYS_INLINE void k_spin_unlock(struct k_spinlock *l,
 	 */
 	atomic_clear(&l->locked);
 #endif
+    //Pad_Config(P2_0, PAD_SW_MODE, PAD_IS_PWRON, PAD_PULL_DOWN, PAD_OUT_ENABLE, PAD_OUT_LOW);
 	arch_irq_unlock(key.key);
 }
 

@@ -83,6 +83,8 @@ int bt_mesh_settings_set(settings_read_cb read_cb, void *cb_arg,
 
 static int mesh_commit(void)
 {
+	
+	printk("mesh_commit\n");
 	if (!atomic_test_bit(bt_mesh.flags, BT_MESH_INIT)) {
 		return 0;
 	}
@@ -96,7 +98,7 @@ static int mesh_commit(void)
 		 */
 		return 0;
 	}
-
+    
 	if (!bt_mesh_subnet_next(NULL)) {
 		/* Nothing to do since we're not yet provisioned */
 		return 0;

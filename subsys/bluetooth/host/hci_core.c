@@ -319,14 +319,17 @@ int bt_hci_cmd_send_sync(uint16_t opcode, struct net_buf *buf,
 	struct k_sem sync_sem;
 	uint8_t status;
 	int err;
-
+    #if defined(CONFIG_SEGGER_SYSTEMVIEW)
+        SEGGER_SYSVIEW_PrintfHost("opcode 0x%04x\r\n",opcode);
+	#endif 
 	if (!buf) {
 		buf = bt_hci_cmd_create(opcode, 0);
 		if (!buf) {
+			printk("buf=null\n");
 			return -ENOBUFS;
 		}
 	}
-
+   
 	LOG_DBG("buf %p opcode 0x%04x len %u", buf, opcode, buf->len);
 
 	k_sem_init(&sync_sem, 0, 1);
@@ -336,7 +339,10 @@ int bt_hci_cmd_send_sync(uint16_t opcode, struct net_buf *buf,
 
 	err = k_sem_take(&sync_sem, HCI_CMD_TIMEOUT);
 	BT_ASSERT_MSG(err == 0, "command opcode 0x%04x timeout with err %d", opcode, err);
-
+	#if defined(CONFIG_SEGGER_SYSTEMVIEW)
+    if(err)
+    SEGGER_SYSVIEW_PrintfHost("opcode timeout\r\n");
+    #endif
 	status = cmd(buf)->status;
 	if (status) {
 		LOG_WRN("opcode 0x%04x status 0x%02x", opcode, status);
@@ -2303,7 +2309,7 @@ static void hci_reset_complete(struct net_buf *buf)
 static void hci_cmd_done(uint16_t opcode, uint8_t status, struct net_buf *buf)
 {
 	LOG_DBG("opcode 0x%04x status 0x%02x buf %p", opcode, status, buf);
-
+    
 	if (net_buf_pool_get(buf->pool_id) != &hci_cmd_pool) {
 		LOG_WRN("opcode 0x%04x pool id %u pool %p != &hci_cmd_pool %p", opcode,
 			buf->pool_id, net_buf_pool_get(buf->pool_id), &hci_cmd_pool);
@@ -2350,7 +2356,9 @@ static void hci_cmd_complete(struct net_buf *buf)
 	 * beginning, so we can safely make this generalization.
 	 */
 	status = buf->data[0];
-
+    #if defined(CONFIG_SEGGER_SYSTEMVIEW)
+    SEGGER_SYSVIEW_PrintfHost("hci_cmd_done\r\n");
+	#endif 
 	hci_cmd_done(opcode, status, buf);
 
 	/* Allow next command to be sent */
@@ -3735,7 +3743,9 @@ void hci_event_prio(struct net_buf *buf)
 	uint8_t evt_flags;
 
 	net_buf_simple_save(&buf->b, &state);
-
+    #if defined(CONFIG_SEGGER_SYSTEMVIEW)
+    SEGGER_SYSVIEW_PrintfHost("hci_event_prio\r\n");
+	#endif 
 	if (buf->len < sizeof(*hdr)) {
 		LOG_ERR("Invalid HCI event size (%u)", buf->len);
 		net_buf_unref(buf);

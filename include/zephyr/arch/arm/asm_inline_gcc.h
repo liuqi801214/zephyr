@@ -29,20 +29,12 @@
 extern "C" {
 #endif
 
-/* On ARMv7-M and ARMv8-M Mainline CPUs, this function prevents regular
- * exceptions (i.e. with interrupt priority lower than or equal to
- * _EXC_IRQ_DEFAULT_PRIO) from interrupting the CPU. NMI, Faults, SVC,
- * and Zero Latency IRQs (if supported) may still interrupt the CPU.
- *
- * On ARMv6-M and ARMv8-M Baseline CPUs, this function reads the value of
- * PRIMASK which shows if interrupts are enabled, then disables all interrupts
- * except NMI.
- */
+#include "rtl876x_pinmux.h"
 
 static ALWAYS_INLINE unsigned int arch_irq_lock(void)
 {
 	unsigned int key;
-
+    //Pad_Config(P2_0, PAD_SW_MODE, PAD_IS_PWRON, PAD_PULL_DOWN, PAD_OUT_ENABLE, PAD_OUT_HIGH);
 #if defined(CONFIG_ARMV6_M_ARMV8_M_BASELINE) && !defined(CONFIG_ARMV8_M_BASELINE)
 #if CONFIG_MP_MAX_NUM_CPUS == 1
 	__asm__ volatile("mrs %0, PRIMASK;"
@@ -95,6 +87,7 @@ static ALWAYS_INLINE unsigned int arch_irq_lock(void)
 
 static ALWAYS_INLINE void arch_irq_unlock(unsigned int key)
 {
+	//Pad_Config(P2_0, PAD_SW_MODE, PAD_IS_PWRON, PAD_PULL_DOWN, PAD_OUT_ENABLE, PAD_OUT_LOW);
 #if defined(CONFIG_ARMV6_M_ARMV8_M_BASELINE) && !defined(CONFIG_ARMV8_M_BASELINE)
 	if (key != 0U) {
 		return;

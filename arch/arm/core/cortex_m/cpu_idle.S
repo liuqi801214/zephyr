@@ -130,7 +130,7 @@ SECTION_FUNC(TEXT, arch_cpu_idle)
 #endif /* CONFIG_ARMV7_M_ARMV8_M_MAINLINE */
 
 	/* Enter low power state */
-	_sleep_if_allowed wfi
+	 _sleep_if_allowed wfi
 
 	/*
 	 * Clear PRIMASK and flush instruction buffer to immediately service

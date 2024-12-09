@@ -72,6 +72,9 @@ void idle(void *unused1, void *unused2, void *unused3)
 		 * unmasked.  It does not take a spinlock or other
 		 * higher level construct.
 		 */
+		#if defined(CONFIG_SEGGER_SYSTEMVIEW)
+        SEGGER_SYSVIEW_PrintfHost("idle irq lock\r\n");
+	    #endif 
 		(void) arch_irq_lock();
 #endif
 
@@ -79,6 +82,9 @@ void idle(void *unused1, void *unused2, void *unused3)
 		extern void (*power_manager_slave_inact_action_handler)(void);
 		power_manager_slave_inact_action_handler();
 #else
+      #if defined(CONFIG_SEGGER_SYSTEMVIEW)
+        SEGGER_SYSVIEW_PrintfHost("k_yield\r\n");
+	  #endif 
 		k_cpu_idle();
 #endif
 

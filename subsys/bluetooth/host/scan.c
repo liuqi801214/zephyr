@@ -445,12 +445,14 @@ static void le_adv_recv(bt_addr_le_t *addr, struct bt_le_scan_recv_info *info,
 
 	LOG_DBG("%s event %u, len %u, rssi %d dBm", bt_addr_le_str(addr), info->adv_type, len,
 		info->rssi);
-
+    // printk("%s event %u, len %u, rssi %d dBm\n", bt_addr_le_str(addr), info->adv_type, len,
+	// 	info->rssi);
 	if (!IS_ENABLED(CONFIG_BT_PRIVACY) &&
 	    !IS_ENABLED(CONFIG_BT_SCAN_WITH_IDENTITY) &&
 	    atomic_test_bit(bt_dev.flags, BT_DEV_EXPLICIT_SCAN) &&
 	    (info->adv_props & BT_HCI_LE_ADV_PROP_DIRECT)) {
 		LOG_DBG("Dropped direct adv report");
+		printk("Dropped direct adv report\n");
 		return;
 	}
 

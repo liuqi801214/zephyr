@@ -297,11 +297,15 @@ static void bt_mesh_scan_cb(const bt_addr_le_t *addr, int8_t rssi,
 			    uint8_t adv_type, struct net_buf_simple *buf)
 {
 	if (adv_type != BT_GAP_ADV_TYPE_ADV_NONCONN_IND) {
+        //printk("adv_type!=\n");
 		return;
 	}
 
 	LOG_DBG("len %u: %s", buf->len, bt_hex(buf->data, buf->len));
-
+    //printk(" len %u\n", buf->len);
+	 #if defined(CONFIG_SEGGER_SYSTEMVIEW)
+        SEGGER_SYSVIEW_PrintfHost("bl %u,dl %u\r\n",buf->len,buf->data[0]);
+	 #endif 
 	while (buf->len > 1) {
 		struct net_buf_simple_state state;
 		uint8_t len, type;
@@ -309,10 +313,14 @@ static void bt_mesh_scan_cb(const bt_addr_le_t *addr, int8_t rssi,
 		len = net_buf_simple_pull_u8(buf);
 		/* Check for early termination */
 		if (len == 0U) {
+			LOG_WRN("len=0\n");
 			return;
 		}
 
 		if (len > buf->len) {
+			 #if defined(CONFIG_SEGGER_SYSTEMVIEW)
+              SEGGER_SYSVIEW_PrintfHost("AD malformed len=%d buf->len=%d\r\n",len,buf->len);
+	         #endif 
 			LOG_WRN("AD malformed len=%d buf->len=%d",len,buf->len);
 			return;
 		}
@@ -322,7 +330,9 @@ static void bt_mesh_scan_cb(const bt_addr_le_t *addr, int8_t rssi,
 		type = net_buf_simple_pull_u8(buf);
 
 		buf->len = len - 1;
-
+        #if defined(CONFIG_SEGGER_SYSTEMVIEW)
+        SEGGER_SYSVIEW_PrintfHost("len %u buflen %u type 0x%02x\r\n",len,buf->len,type);
+	    #endif 
 		switch (type) {
 		case BT_DATA_MESH_MESSAGE:
 			bt_mesh_net_recv(buf, rssi, BT_MESH_NET_IF_ADV);

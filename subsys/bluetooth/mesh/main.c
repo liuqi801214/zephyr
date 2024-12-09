@@ -412,6 +412,9 @@ void bt_mesh_reset(void)
 	if (IS_ENABLED(CONFIG_BT_MESH_PROXY_SOLICITATION)) {
 		bt_mesh_sol_reset();
 	}
+
+    bt_mesh_scan_enable();
+
 }
 
 bool bt_mesh_is_provisioned(void)
@@ -594,6 +597,7 @@ int bt_mesh_start(void)
 	if (IS_ENABLED(CONFIG_BT_MESH_LOW_POWER)) {
 		bt_mesh_lpn_init();
 	} else {
+		printk("bt_mesh_scan_enable\n");
 		bt_mesh_scan_enable();
 	}
 

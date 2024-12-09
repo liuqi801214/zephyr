@@ -323,7 +323,7 @@ static int rtk_platform_init(void)
 static int rtk_register_update(void)
 {
 	extern uint32_t SystemCpuClock;
-
+    NVIC_SetPriority(SysTick_IRQn, 0xff);
 	DBG_DIRECT("SystemCpuClock:%x", SystemCpuClock);
 #ifdef CONFIG_SYSTICK_USE_EXTERNAL_CLOCK
 	/* Selects the SysTick timer clock source: external 32768 */

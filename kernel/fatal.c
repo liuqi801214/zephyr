@@ -83,13 +83,14 @@ FUNC_NORETURN void k_fatal_halt(unsigned int reason)
 	arch_system_halt(reason);
 }
 /* LCOV_EXCL_STOP */
-
+#include "rtl876x_pinmux.h"
 void z_fatal_error(unsigned int reason, const z_arch_esf_t *esf)
 {
 	/* We can't allow this code to be preempted, but don't need to
 	 * synchronize between CPUs, so an arch-layer lock is
 	 * appropriate.
 	 */
+    Pad_Config(P2_1, PAD_SW_MODE, PAD_IS_PWRON, PAD_PULL_DOWN, PAD_OUT_ENABLE, PAD_OUT_HIGH);
 	unsigned int key = arch_irq_lock();
 	struct k_thread *thread = IS_ENABLED(CONFIG_MULTITHREADING) ?
 			_current : NULL;
@@ -173,9 +174,9 @@ void z_fatal_error(unsigned int reason, const z_arch_esf_t *esf)
 		}
 #endif /*CONFIG_ARCH_HAS_NESTED_EXCEPTION_DETECTION */
 	}
-
+    
 	arch_irq_unlock(key);
-
+    Pad_Config(P2_1, PAD_SW_MODE, PAD_IS_PWRON, PAD_PULL_DOWN, PAD_OUT_ENABLE, PAD_OUT_LOW);
 	if (IS_ENABLED(CONFIG_MULTITHREADING)) {
 		k_thread_abort(thread);
 	}

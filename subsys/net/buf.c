@@ -252,6 +252,9 @@ struct net_buf *net_buf_alloc_len(struct net_buf_pool *pool, size_t size,
 	/* We need to prevent race conditions
 	 * when accessing pool->uninit_count.
 	 */
+	#if defined(CONFIG_SEGGER_SYSTEMVIEW)
+      SEGGER_SYSVIEW_PrintfHost("nbal k_spin_lock\r\n");
+	#endif 
 	key = k_spin_lock(&pool->lock);
 
 	/* If there are uninitialized buffers we're guaranteed to succeed
@@ -267,18 +270,27 @@ struct net_buf *net_buf_alloc_len(struct net_buf_pool *pool, size_t size,
 		if (pool->uninit_count < pool->buf_count) {
 			buf = k_lifo_get(&pool->free, K_NO_WAIT);
 			if (buf) {
+				#if defined(CONFIG_SEGGER_SYSTEMVIEW)
+                    SEGGER_SYSVIEW_PrintfHost("nbal k_spin_lock1\r\n");
+	            #endif 
+	            key = k_spin_lock(&pool->lock);
 				k_spin_unlock(&pool->lock, key);
 				goto success;
 			}
 		}
-
+      
 		uninit_count = pool->uninit_count--;
+		#if defined(CONFIG_SEGGER_SYSTEMVIEW)
+        SEGGER_SYSVIEW_PrintfHost("nbal k_spin_unlock\r\n");
+	    #endif 
 		k_spin_unlock(&pool->lock, key);
 
 		buf = pool_get_uninit(pool, uninit_count);
 		goto success;
 	}
-
+    #if defined(CONFIG_SEGGER_SYSTEMVIEW)
+        SEGGER_SYSVIEW_PrintfHost("nbal k_spin_unlock1\r\n");
+	#endif 
 	k_spin_unlock(&pool->lock, key);
 
 #if defined(CONFIG_NET_BUF_LOG) && (CONFIG_NET_BUF_LOG_LEVEL >= LOG_LEVEL_WRN)
@@ -428,7 +440,6 @@ void net_buf_slist_put(sys_slist_t *list, struct net_buf *buf)
 
 	__ASSERT_NO_MSG(list);
 	__ASSERT_NO_MSG(buf);
-
 	key = k_spin_lock(&net_buf_slist_lock);
 	sys_slist_append(list, &buf->node);
 	k_spin_unlock(&net_buf_slist_lock, key);
@@ -468,6 +479,9 @@ void net_buf_unref(struct net_buf *buf)
 {
 	__ASSERT_NO_MSG(buf);
     k_spinlock_key_t key;
+	#if defined(CONFIG_SEGGER_SYSTEMVIEW)
+     SEGGER_SYSVIEW_PrintfHost("nbu k_spin_lock\r\n");
+	#endif 
 	key = k_spin_lock(&buf_unref_lock);//上锁
 	while (buf) {
 		struct net_buf *frags = buf->frags;
@@ -504,15 +518,24 @@ void net_buf_unref(struct net_buf *buf)
 #endif
 
 		if (pool->destroy) {
+			#if defined(CONFIG_SEGGER_SYSTEMVIEW)
+             SEGGER_SYSVIEW_PrintfHost("nbu k_spin_unlock\r\n");
+	        #endif 
 			k_spin_unlock(&buf_unref_lock, key);//解锁
 			pool->destroy(buf);
 		} else {
+			#if defined(CONFIG_SEGGER_SYSTEMVIEW)
+             SEGGER_SYSVIEW_PrintfHost("nbu k_spin_lock\r\n");
+	        #endif 
 			key = k_spin_lock(&buf_unref_lock);//上锁
 			net_buf_destroy(buf);
 		}
 
 		buf = frags;
 	}
+	#if defined(CONFIG_SEGGER_SYSTEMVIEW)
+        SEGGER_SYSVIEW_PrintfHost("nbu k_spin_unlock1\r\n");
+	 #endif 
 	k_spin_unlock(&buf_unref_lock, key);//解锁
 }
 
